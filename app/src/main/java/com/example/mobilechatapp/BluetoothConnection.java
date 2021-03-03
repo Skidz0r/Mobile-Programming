@@ -1,17 +1,13 @@
 package com.example.mobilechatapp;
 
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.bluetooth.BluetoothAdapter;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 public class BluetoothConnection extends AppCompatActivity {
     /* Bluetooth stuff*/
@@ -37,7 +33,7 @@ public class BluetoothConnection extends AppCompatActivity {
         btIcon = (ImageView) findViewById(R.id.on_off_btIcon);
 
         btAdapter = BluetoothAdapter.getDefaultAdapter();
-
+        
         bluetoothIconSetUp();
         bluetoothSetUp();
     }
