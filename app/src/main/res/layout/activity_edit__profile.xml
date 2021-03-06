@@ -23,8 +23,8 @@
 
     <Button
         android:id="@+id/Change_Background"
-        android:layout_width="150dp"
-        android:layout_height="72dp"
+        android:layout_width="197dp"
+        android:layout_height="73dp"
         android:text="Change Background"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
