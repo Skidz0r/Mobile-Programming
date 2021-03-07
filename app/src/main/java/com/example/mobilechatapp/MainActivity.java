@@ -15,8 +15,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         Button btConnect = (Button)findViewById(R.id.BluetoothSettings);
-        Button settings = (Button)findViewById(R.id.Settings);
-        Button uploadImage = (Button)findViewById(R.id.Upload_Picture);
+        Button profile = (Button)findViewById(R.id.Profile);
+        Button uploadImage = (Button)findViewById(R.id.button_upload_picture);
 
         btConnect.setOnClickListener(new View.OnClickListener()
         {
@@ -28,22 +28,13 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        settings.setOnClickListener(new View.OnClickListener() {
+        profile.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent settings_button = new Intent(getApplicationContext(), Edit_Profile.class);
-                startActivity(settings_button);
+                Intent profile_button = new Intent(getApplicationContext(), Profile.class);
+                startActivity(profile_button);
             }
         });
 
-        uploadImage.setOnClickListener(new View.OnClickListener()
-        {
-            @Override
-            public void onClick(View v)
-            {
-                Intent upload_picture = new Intent(getApplicationContext(), Upload_Picture.class);
-                startActivity(upload_picture);
-            }
-        });
     }
 }

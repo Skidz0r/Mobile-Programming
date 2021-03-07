@@ -1,46 +1,76 @@
 package com.example.mobilechatapp;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-public class Upload_Picture extends AppCompatActivity {
+public class Profile extends AppCompatActivity {
 
     ImageView mImageView;
+    TextView profile_Name_To_Change;
+    String str;
     Button upload_pic;
-
+    Button profile_settings_button;
     private static final int IMAGE_PICK_CODE = 1000;
     private static final int PERMISSION_CODE = 1001;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_upload__picture);
+        setContentView(R.layout.activity_profile);
 
-        //VIEWS
+        //upload picture views
         mImageView = findViewById(R.id.image_to_upload);
-        upload_pic = findViewById(R.id.button_upload_image);
+        upload_pic = findViewById(R.id.button_upload_picture);
+        //
 
-        //handles
+        upload_pic = (Button)findViewById(R.id.button_upload_picture);
+        profile_settings_button =(Button)findViewById(R.id.Profile_Settings);
+
+        SharedPreferences sharedPref = getSharedPreferences("bgColorFile", Context.MODE_PRIVATE);
+        int colorValue = sharedPref.getInt("color", 0);
+        View view = this.getWindow().getDecorView();
+        view.setBackgroundColor(colorValue);
+        profile_Name_To_Change = findViewById(R.id.Profile_Name);
+
+        // Check if key has value
+        Intent intent = getIntent();
+        if (intent.hasExtra("key_change_name")) {
+            str = getIntent().getExtras().getString("key_change_name");
+            profile_Name_To_Change.setText(str);
+        }
+
+        profile_settings_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent profile_settings_button = new Intent(getApplicationContext(), Profile_Settings.class);
+                startActivity(profile_settings_button);
+            }
+        });
+
         upload_pic.setOnClickListener(new View.OnClickListener()
         {
             @Override
-            public void onClick(View v)
+            public void onClick(View view)
             {
                 // check runtime permissions
                 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
                 {
                     if(checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
-                    == PackageManager.PERMISSION_DENIED)
+                            == PackageManager.PERMISSION_DENIED)
                     {
                         // permission not guaranted  , request it
                         String[] permissions = {Manifest.permission.READ_EXTERNAL_STORAGE};
@@ -60,7 +90,6 @@ public class Upload_Picture extends AppCompatActivity {
                 }
             }
         });
-
     }
 
     private void pickImageFromGallery()
@@ -70,6 +99,7 @@ public class Upload_Picture extends AppCompatActivity {
         intent.setType("image/*");
         startActivityForResult(intent,IMAGE_PICK_CODE);
     }
+
 
     // handle result of runtime permissions
     @Override
@@ -100,5 +130,7 @@ public class Upload_Picture extends AppCompatActivity {
             // set image to image view
             mImageView.setImageURI(data.getData());
         }
+        super.onActivityResult(requestCode,resultCode,data);
     }
+
 }
