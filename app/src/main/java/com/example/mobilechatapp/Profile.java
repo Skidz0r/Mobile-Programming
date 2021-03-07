@@ -21,6 +21,8 @@ public class Profile extends AppCompatActivity {
 
     ImageView mImageView;
     TextView profile_Name_To_Change;
+    TextView profile_Age_To_Change;
+    TextView profile_City_To_Change;
     String str;
     Button upload_pic;
     Button profile_settings_button;
@@ -45,6 +47,8 @@ public class Profile extends AppCompatActivity {
         View view = this.getWindow().getDecorView();
         view.setBackgroundColor(colorValue);
         profile_Name_To_Change = findViewById(R.id.Profile_Name);
+        profile_Age_To_Change = findViewById(R.id.Profile_Age);
+        profile_City_To_Change = findViewById(R.id.Profile_City);
 
         // Check if key has value
         Intent intent = getIntent();
@@ -52,6 +56,15 @@ public class Profile extends AppCompatActivity {
             str = getIntent().getExtras().getString("key_change_name");
             profile_Name_To_Change.setText(str);
         }
+        if (intent.hasExtra("key_change_age")) {
+            str = getIntent().getExtras().getString("key_change_age");
+            profile_Age_To_Change.setText(str);
+        }
+        if (intent.hasExtra("key_change_city")) {
+            str = getIntent().getExtras().getString("key_change_city");
+            profile_City_To_Change.setText(str);
+        }
+
 
         profile_settings_button.setOnClickListener(new View.OnClickListener() {
             @Override

@@ -55,12 +55,22 @@ public class Profile_Settings extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 
-                // Apply Name Change
-                EditText t = findViewById(R.id.My_Profile_Name);
-                String input = t.getText().toString();
-                //((TextView) findViewById(R.id.Profile_Name)).setText(input);
+                // Save Name
+                EditText name_edit = findViewById(R.id.My_Profile_Name);
+                String name_input = name_edit.getText().toString();
+                // Save Age
+                EditText age_edit = findViewById(R.id.My_Profile_Age);
+                String age_input = age_edit.getText().toString();
+                // Save City
+                EditText city_edit = findViewById(R.id.My_Profile_City);
+                String city_input = city_edit.getText().toString();
+
+                // Saving it to keys
                 Intent i = new Intent(Profile_Settings.this,Profile.class);
-                i.putExtra("key_change_name",input);
+                i.putExtra("key_change_name",name_input);
+                i.putExtra("key_change_age",age_input);
+                i.putExtra("key_change_city",city_input);
+
                 // Make a log
                 //Log.d(tag:"info", input);
                 // End of applying name change
