@@ -139,8 +139,12 @@ public class BluetoothConnection extends AppCompatActivity {
                     btAdapter.cancelDiscovery();
 
                 else {
-                    Intent enableDiscovery = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-                    startActivity(enableDiscovery);
+                    //Por alguma razão não consigo pedir autorização ao user
+                    //Intent enableDiscovery = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+                    //startActivity(enableDiscovery);
+
+                    // Enquanto não resolvermos o problema de cima podemos usar esta linha para testar as coisas
+                    btAdapter.startDiscovery();
                 }
             }
         });
