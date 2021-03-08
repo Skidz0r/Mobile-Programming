@@ -16,7 +16,6 @@ public class MainActivity extends AppCompatActivity {
 
         Button btConnect = (Button)findViewById(R.id.BluetoothSettings);
         Button profile = (Button)findViewById(R.id.Profile);
-        Button uploadImage = (Button)findViewById(R.id.button_upload_picture);
 
         btConnect.setOnClickListener(new View.OnClickListener()
         {

@@ -36,10 +36,7 @@ public class Profile extends AppCompatActivity {
 
         //upload picture views
         mImageView = findViewById(R.id.image_to_upload);
-        upload_pic = findViewById(R.id.button_upload_picture);
         //
-
-        upload_pic = (Button)findViewById(R.id.button_upload_picture);
         profile_settings_button =(Button)findViewById(R.id.Profile_Settings);
 
         SharedPreferences sharedPref = getSharedPreferences("bgColorFile", Context.MODE_PRIVATE);
@@ -74,7 +71,8 @@ public class Profile extends AppCompatActivity {
             }
         });
 
-        upload_pic.setOnClickListener(new View.OnClickListener()
+        final ImageView image_to_upload_button = (ImageView) findViewById(R.id.image_to_upload);
+        image_to_upload_button.setOnClickListener(new View.OnClickListener()
         {
             @Override
             public void onClick(View view)
