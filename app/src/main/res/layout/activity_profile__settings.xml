@@ -7,18 +7,6 @@
     android:id="@+id/rView"
     tools:context=".Profile_Settings">
 
-    <Button
-        android:id="@+id/Change_Background"
-        android:layout_width="214dp"
-        android:layout_height="64dp"
-        android:text="Change Background Color"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.411"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.554" />
-
     <EditText
         android:id="@+id/My_Profile_Age"
         android:layout_width="wrap_content"
@@ -66,13 +54,15 @@
 
     <Button
         android:id="@+id/Apply_Changes"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="102dp"
+        android:layout_height="64dp"
         android:text="Apply"
+        app:backgroundTint="#27E32F"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.756" />
+        app:layout_constraintVertical_bias="0.691" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

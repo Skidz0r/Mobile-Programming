@@ -1,12 +1,12 @@
 package com.example.mobilechatapp;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -34,33 +34,22 @@ public class Profile extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_profile);
 
-        //upload picture views
-        mImageView = findViewById(R.id.image_to_upload);
-        //
+
+        mImageView = findViewById(R.id.image_to_upload); // icon profile picture
         profile_settings_button =(Button)findViewById(R.id.Profile_Settings);
 
-        SharedPreferences sharedPref = getSharedPreferences("bgColorFile", Context.MODE_PRIVATE);
-        int colorValue = sharedPref.getInt("color", 0);
-        View view = this.getWindow().getDecorView();
-        view.setBackgroundColor(colorValue);
+        // Profile Personal Info textViews
         profile_Name_To_Change = findViewById(R.id.Profile_Name);
         profile_Age_To_Change = findViewById(R.id.Profile_Age);
         profile_City_To_Change = findViewById(R.id.Profile_City);
+        //---
 
-        // Check if key has value
-        Intent intent = getIntent();
-        if (intent.hasExtra("key_change_name")) {
-            str = getIntent().getExtras().getString("key_change_name");
-            profile_Name_To_Change.setText(str);
-        }
-        if (intent.hasExtra("key_change_age")) {
-            str = getIntent().getExtras().getString("key_change_age");
-            profile_Age_To_Change.setText(str);
-        }
-        if (intent.hasExtra("key_change_city")) {
-            str = getIntent().getExtras().getString("key_change_city");
-            profile_City_To_Change.setText(str);
-        }
+        // Load stored info in shared preferences
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+        profile_Name_To_Change.setText(sp.getString("Name_Key",""));
+        profile_Age_To_Change.setText(sp.getString("Age_Key",""));
+        profile_City_To_Change.setText(sp.getString("City_Key",""));
+        //----
 
 
         profile_settings_button.setOnClickListener(new View.OnClickListener() {
@@ -142,6 +131,15 @@ public class Profile extends AppCompatActivity {
             mImageView.setImageURI(data.getData());
         }
         super.onActivityResult(requestCode,resultCode,data);
+    }
+
+    @Override
+    public void onResume(){
+        super.onResume();
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+        profile_Name_To_Change.setText(sp.getString("Name_Key",""));
+        profile_Age_To_Change.setText(sp.getString("Age_Key",""));
+        profile_City_To_Change.setText(sp.getString("City_Key",""));
     }
 
 }
