@@ -27,6 +27,7 @@ public class BluetoothConnection extends AppCompatActivity {
     /* Buttons references*/
     Button btOnOff;
     Button btDiscovery;
+    Button btShowPaired;
 
     /* Filters to be used in broadcast receiving*/
     IntentFilter filter;
@@ -39,6 +40,7 @@ public class BluetoothConnection extends AppCompatActivity {
         /* Get Button reference */
         btOnOff = (Button) findViewById(R.id.btOnOffButton);
         btDiscovery = (Button) findViewById(R.id.discoveryOnOff);
+        btShowPaired = (Button) findViewById(R.id.showPaired);
 
         /* Get image reference*/
         btIcon = (ImageView) findViewById(R.id.on_off_btIcon);
@@ -52,6 +54,7 @@ public class BluetoothConnection extends AppCompatActivity {
         btInitialDisplayMechanics();
         btTurnOnOffMechanics();
         btDiscoveryMechanics();
+        btShowPairedMechanics();
 
         registerReceiver(receiver, filter);
     }
@@ -86,18 +89,21 @@ public class BluetoothConnection extends AppCompatActivity {
         btIcon.setImageResource(R.drawable.ic_action_bt_error);
         btOnOff.setText("Error");
         btDiscovery.setVisibility(View.GONE);
+        btShowPaired.setVisibility(View.GONE);
     }
 
     private void btIsOn() {
         btIcon.setImageResource(R.drawable.ic_action_bt_on);
         btOnOff.setText("Turn Off");
         btDiscovery.setVisibility(View.VISIBLE);
+        btShowPaired.setVisibility(View.VISIBLE);
     }
 
     private void btIsOff() {
         btIcon.setImageResource(R.drawable.ic_action_bt_off);
         btOnOff.setText("Turn On");
         btDiscovery.setVisibility(View.GONE);
+        btShowPaired.setVisibility(View.GONE);
     }
 
     private void discoveryOff() {
@@ -146,6 +152,16 @@ public class BluetoothConnection extends AppCompatActivity {
                     // Enquanto não resolvermos o problema de cima podemos usar esta linha para testar as coisas
                     btAdapter.startDiscovery();
                 }
+            }
+        });
+    }
+
+    private void btShowPairedMechanics() {
+        btShowPaired.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(getApplicationContext(), ShowPairedDevices.class);
+                startActivity(intent);
             }
         });
     }
