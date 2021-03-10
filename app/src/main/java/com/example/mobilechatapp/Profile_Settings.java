@@ -1,6 +1,5 @@
 package com.example.mobilechatapp;
 
-import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -22,7 +21,7 @@ public class Profile_Settings extends AppCompatActivity {
         setContentView(R.layout.activity_profile__settings);
 
         //Get shared preferences
-        SharedPreferences prefs = this.getSharedPreferences("com.example.app", Context.MODE_PRIVATE);
+      //  SharedPreferences prefs = this.getSharedPreferences("com.example.app", Context.MODE_PRIVATE);
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
         //---
 

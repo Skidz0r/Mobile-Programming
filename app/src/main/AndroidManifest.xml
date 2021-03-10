@@ -7,6 +7,9 @@
     <!-- Permission to acess/write storage -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <!-- Permissions needed for firebase -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Also uses write and read external_storage (already implemented) -->
 
     <application
         android:allowBackup="true"
