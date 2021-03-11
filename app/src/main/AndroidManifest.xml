@@ -10,6 +10,8 @@
     <!-- Permissions needed for firebase -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Also uses write and read external_storage (already implemented) -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <application
         android:allowBackup="true"
