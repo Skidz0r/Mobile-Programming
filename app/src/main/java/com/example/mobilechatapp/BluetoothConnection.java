@@ -28,6 +28,7 @@ public class BluetoothConnection extends AppCompatActivity {
     Button btOnOff;
     Button btDiscovery;
     Button btShowPaired;
+    Button Connect_Device;
 
     /* Filters to be used in broadcast receiving*/
     IntentFilter filter;
@@ -41,6 +42,7 @@ public class BluetoothConnection extends AppCompatActivity {
         btOnOff = (Button) findViewById(R.id.btOnOffButton);
         btDiscovery = (Button) findViewById(R.id.discoveryOnOff);
         btShowPaired = (Button) findViewById(R.id.showPaired);
+        Connect_Device= (Button) findViewById(R.id.Connect_Device_Button);
 
         /* Get image reference*/
         btIcon = (ImageView) findViewById(R.id.on_off_btIcon);
@@ -57,6 +59,14 @@ public class BluetoothConnection extends AppCompatActivity {
         btShowPairedMechanics();
 
         registerReceiver(receiver, filter);
+
+        Connect_Device.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent Connect_Devices = new Intent(getApplicationContext(), ConnectDevices.class);
+                startActivity(Connect_Devices);
+            }
+        });
     }
 
     private void showToast(CharSequence text) {
@@ -133,6 +143,8 @@ public class BluetoothConnection extends AppCompatActivity {
         });
     }
 
+
+
     private void btDiscoveryMechanics() {
         filter.addAction(BluetoothDevice.ACTION_FOUND);
         filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
@@ -167,6 +179,7 @@ public class BluetoothConnection extends AppCompatActivity {
     }
 
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
 
@@ -180,7 +193,7 @@ public class BluetoothConnection extends AppCompatActivity {
                 discoveryOff();
             }
 
-            else if ( BluetoothDevice.ACTION_FOUND.equals(action) ) {
+             else if ( action.equals(BluetoothDevice.ACTION_FOUND)) {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 String deviceName = device.getName();
                 String deviceHardwareAddress = device.getAddress();
@@ -215,6 +228,8 @@ public class BluetoothConnection extends AppCompatActivity {
             }
         }
     };
+
+
 
     @Override
     public void onDestroy() {

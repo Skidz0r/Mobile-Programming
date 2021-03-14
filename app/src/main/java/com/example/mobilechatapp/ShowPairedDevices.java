@@ -9,10 +9,13 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.ArrayList;
 import java.util.Set;
 
-public class ShowPairedDevices extends AppCompatActivity {
+public class ShowPairedDevices extends AppCompatActivity  {
 
+    public ArrayList<BluetoothDevice> mDevices = new ArrayList<>();
+    private static final String TAG = "ConnectDevices"; // logs
     BluetoothAdapter btAdapter;
     Set<BluetoothDevice> btDevice;
 
@@ -26,9 +29,11 @@ public class ShowPairedDevices extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_show_paired_devices);
 
+        mDevices = new ArrayList<>();
         btAdapter = BluetoothAdapter.getDefaultAdapter();
         pairedListView = (ListView) findViewById(R.id.pairedListView);
         pairedInfoTextView = (TextView) findViewById(R.id.pairedInfoTextView);
+
 
         getPairedInfoToList();
     }
@@ -49,12 +54,10 @@ public class ShowPairedDevices extends AppCompatActivity {
 
     private void getPairedInfo() {
         btDevice = btAdapter.getBondedDevices();
-
         deviceName = new String[btDevice.size()];
 
         if ( btDevice.size() > 0 ) {
             int i = 0;
-
             for( BluetoothDevice device: btDevice ) {
                 deviceName[i] = device.getName();
                 i++;
