@@ -190,16 +190,6 @@ public class BluetoothConnection extends AppCompatActivity {
         });
     }
 
-    private void btShowPairedMechanics() {
-        btShowPaired.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(getApplicationContext(), ShowPairedDevices.class);
-                startActivity(intent);
-            }
-        });
-    }
-
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
