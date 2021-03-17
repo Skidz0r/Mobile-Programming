@@ -48,7 +48,6 @@ public class BluetoothConnection extends AppCompatActivity {
         /* Get Button reference */
         btOnOff = (Button) findViewById(R.id.btOnOffButton);
         btDiscovery = (Button) findViewById(R.id.discoveryOnOff);
-        btShowPaired = (Button) findViewById(R.id.showPaired);
 
         /* Get image reference*/
         btIcon = (ImageView) findViewById(R.id.on_off_btIcon);
@@ -129,7 +128,6 @@ public class BluetoothConnection extends AppCompatActivity {
         btIcon.setImageResource(R.drawable.ic_action_bt_on);
         btOnOff.setText("Turn Off");
         btDiscovery.setVisibility(View.VISIBLE);
-        btShowPaired.setVisibility(View.VISIBLE);
     }
 
     private void btIsOff() {
