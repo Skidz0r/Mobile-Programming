@@ -19,7 +19,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 
-public class BluetoothConnection extends AppCompatActivity {
+public class BluetoothSettings extends AppCompatActivity {
     /* Bluetooth stuff*/
     BluetoothAdapter btAdapter;
     ArrayList<BluetoothDevice> btArrayDevice;
@@ -35,7 +35,6 @@ public class BluetoothConnection extends AppCompatActivity {
     /* Buttons references*/
     Button btOnOff;
     Button btDiscovery;
-    Button btShowPaired;
 
     /* Filters to be used in broadcast receiving*/
     IntentFilter filter;
@@ -43,7 +42,7 @@ public class BluetoothConnection extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_bluetooth_connection);
+        setContentView(R.layout.activity_bluetooth_settings);
 
         /* Get Button reference */
         btOnOff = (Button) findViewById(R.id.btOnOffButton);

@@ -14,15 +14,16 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Button btConnect = (Button)findViewById(R.id.BluetoothSettings);
-        Button profile = (Button)findViewById(R.id.Profile);
+        Button btConnect = (Button)findViewById(R.id.bluetoothSettingsButton);
+        Button profile = (Button)findViewById(R.id.profileButton);
+        Button chat = (Button)findViewById(R.id.chatButton);
 
         btConnect.setOnClickListener(new View.OnClickListener()
         {
             @Override
             public void onClick(View v)
             {
-                Intent btConnectIntent = new Intent(getApplicationContext(), BluetoothConnection.class);
+                Intent btConnectIntent = new Intent(getApplicationContext(), BluetoothSettings.class);
                 startActivity(btConnectIntent);
             }
         });
@@ -32,6 +33,14 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 Intent profile_button = new Intent(getApplicationContext(), Profile.class);
                 startActivity(profile_button);
+            }
+        });
+
+        chat.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent chatIntent = new Intent(getApplicationContext(), BluetoothChat.class);
+                startActivity(chatIntent);
             }
         });
 
