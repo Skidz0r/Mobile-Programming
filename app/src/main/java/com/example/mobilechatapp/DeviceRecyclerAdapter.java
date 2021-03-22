@@ -11,7 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 
-public class DeviceRecycleAdapter extends RecyclerView.Adapter<DeviceRecycleAdapter.DeviceViewHolder> {
+public class DeviceRecyclerAdapter extends RecyclerView.Adapter<DeviceRecyclerAdapter.DeviceViewHolder> {
 
     private ArrayList<BluetoothDevice> mArrayDevice;
     private OnItemClickListener mListener;
@@ -49,7 +49,7 @@ public class DeviceRecycleAdapter extends RecyclerView.Adapter<DeviceRecycleAdap
         }
     }
 
-    public DeviceRecycleAdapter(ArrayList<BluetoothDevice> arr) {
+    public DeviceRecyclerAdapter(ArrayList<BluetoothDevice> arr) {
         mArrayDevice = arr;
     }
 

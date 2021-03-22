@@ -27,7 +27,7 @@ public class BluetoothChat extends AppCompatActivity {
 
     /* Recycler stuff */
     RecyclerView mRecyclerView;
-    DeviceRecycleAdapter mAdapter;
+    DeviceRecyclerAdapter mAdapter;
     RecyclerView.LayoutManager mLayoutManager;
 
     /* Debug Tags,used for debugging/errors/info*/
@@ -71,6 +71,7 @@ public class BluetoothChat extends AppCompatActivity {
     /**
      * Method will initiate the necessary mumbo jumbo of the recycler view, it will
      * then create a list paired devices, ready to connect and chat.
+     * An item clicker listener is created, that creates a connection between devices
      */
     public void initiateRecyclerView() {
         mRecyclerView = findViewById(R.id.pairedListView);
@@ -78,12 +79,12 @@ public class BluetoothChat extends AppCompatActivity {
         mLayoutManager = new LinearLayoutManager(this);
 
         getPairedDevices();
-        mAdapter = new DeviceRecycleAdapter(btArrayDevice);
+        mAdapter = new DeviceRecyclerAdapter(btArrayDevice);
 
         mRecyclerView.setLayoutManager(mLayoutManager);
         mRecyclerView.setAdapter(mAdapter);
 
-        mAdapter.setOnItemClickListener(new DeviceRecycleAdapter.OnItemClickListener() {
+        mAdapter.setOnItemClickListener(new DeviceRecyclerAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(int position) {
                 Log.d(TAG3, "Item clicked");
@@ -123,8 +124,6 @@ public class BluetoothChat extends AppCompatActivity {
                 Log.i(TAG0, "Connection success");
                 connectedThread = new ConnectedThread(socket);
                 connectedThread.start();
-
-                //basicTest();
             } catch (IOException e) {
                 Log.e(TAG0, "Failed in accepting server socket", e);
             }
@@ -189,7 +188,7 @@ public class BluetoothChat extends AppCompatActivity {
     }
 
     /**
-     * Method will create a new server thread, that will listen for upcoming connection requests
+     * Method will create a new server thread, that will listen for upcoming connection requests.
      */
     public void newServerThread() {
         serverThread = new ServerThread();
@@ -267,6 +266,7 @@ public class BluetoothChat extends AppCompatActivity {
     /**
      * This method will test if the devices are correctly sending and receiving messages!
      * It should only be called, after making sure, the devices are connected.
+     * This DOES NOT substitute a real test, and should be removed soon
      */
     public void basicTest() {
         final String message = btAdapter.getName() + " says hello!";
