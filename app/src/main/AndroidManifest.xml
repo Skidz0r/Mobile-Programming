@@ -17,7 +17,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MobileChatApp">
-        <activity android:name=".BluetoothChat"></activity>
+        <activity android:name=".BluetoothChatMessages"></activity>
+        <activity android:name=".BluetoothChat" />
         <activity android:name=".Profile_Settings" />
         <activity android:name=".Profile" />
         <activity android:name=".BluetoothSettings" />
