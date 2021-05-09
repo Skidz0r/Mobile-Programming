@@ -1,11 +1,15 @@
 package com.example.mobilechatapp;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -16,7 +20,9 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -175,14 +181,20 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
         doBindService();
     }
 
+
     public void initialSetUp() {
         discovery.setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.M)
             @Override
             public void onClick(View v) {
+                ActivityCompat.requestPermissions(BluetoothChat.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},MY_PERMISSION_REQUEST_CONSTANT);
+                ActivityCompat.requestPermissions(BluetoothChat.this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},MY_PERMISSION_REQUEST_CONSTANT);
                 if ( !btAdapter.isDiscovering() )
                     sendMessageToService(BT_START_DISCOVERY);
-                else
+                else {
                     sendMessageToService(BT_END_DISCOVERY);
+                    sendMessageToService(BT_START_DISCOVERY);
+                }
             }
         });
 
@@ -192,6 +204,7 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
 
         sendMessageToService(START_LISTENING);
     }
+
 
     /**
      * Get the info of the currently known devices, into an array list
@@ -218,8 +231,13 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
         mAdapter.setOnItemClickListener(new DeviceRecyclerAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(int position) {
+                ActivityCompat.requestPermissions(BluetoothChat.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},MY_PERMISSION_REQUEST_CONSTANT);
+                ActivityCompat.requestPermissions(BluetoothChat.this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},MY_PERMISSION_REQUEST_CONSTANT);
                 Log.d(TAG, "Item clicked");
                 sendMessageToService(CONNECT, knownDevices.get(position));
+                Intent openChat = new Intent(BluetoothChat.this,BluetoothChatMessages.class);
+                openChat.putExtra("btdevice",knownDevices.get(position));
+                startActivity(openChat);
             }
         });
     }

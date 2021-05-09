@@ -31,4 +31,5 @@ public interface BluetoothState {
 
     static final short START_LISTENING = 21;
     static final short CONNECT = 22;
+    static final short MY_PERMISSION_REQUEST_CONSTANT=23;
 }

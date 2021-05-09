@@ -4,10 +4,15 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -25,7 +30,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.UUID;
 
-public class BluetoothChatMessages extends AppCompatActivity {
+public class BluetoothChatMessages extends AppCompatActivity implements BluetoothState{
     // Default android bluetooth adapter
     BluetoothAdapter btAdapter;
     // Holds a list of paired devices
@@ -42,30 +47,25 @@ public class BluetoothChatMessages extends AppCompatActivity {
     private EditText createMessage;
     private Button sendButton;
     private ArrayAdapter<String> adapterMainChat;
-    private int state;
-    private String connectedDevice;
-    public static final int MESSAGE_READ = 1;
-    public static final int MESSAGE_WRITE = 2;
-    public static final int MESSAGE_DEVICE_NAME = 3;
-    public static final int MESSAGE_TOAST = 4;
-    public static final String DEVICE_NAME = "deviceName";
-    public static final String TOAST = "toast";
 
-
-    /* Debug Tags,used for debugging/errors/info*/
-    private final static String TAG0 = "ServerThread";
-    private final static String TAG1 = "ClientThread";
-    private final static String TAG2 = "ConnectedThread";
+    /**
+     * Messenger for communicating with service.
+     * */
+    Messenger serviceChannel = null;
+    /** Flag indicating whether we have called bind on the service. */
+    boolean isBoundToService = false;
+    /**
+     * Target we publish for clients to send messages to IncomingHandler.
+     */
+    final Messenger clientChannel = new Messenger(new BluetoothChatMessages.MessageHandler());
 
     /* Name of the app. Used in server thread, used to initialize a connection.*/
     private final static String NAME = "MobileChatApp";
     /* "Unique" UUID used in sever/client thread, used to initialize a connection*/
     private final static UUID MY_UUID = UUID.fromString("b885d9a0-b9a7-4a2a-b05d-b3aae45c9192");
 
-    /* References to threads*/
-    private ServerThread serverThread = null;
-    private ClientThread clientThread = null;
-    private ConnectedThread connectedThread = null;
+    final String TAG = "BluetoothChat";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,15 +75,26 @@ public class BluetoothChatMessages extends AppCompatActivity {
         btArrayDevice = new ArrayList<>();
 
         /* Important stuff for main chat */
-        context = this;
+        context = BluetoothChatMessages.this;
         load_main_chat();
 
         /* Start Conection to other device */
-        newServerThread();
         BluetoothDevice device= getIntent().getExtras().getParcelable("btdevice"); // Gets the device from BluetoothChat.class
-        connectedDevice = device.getName(); // Get other device name so we later display on the chat
-        clientThread = new ClientThread(device);
-        clientThread.start();
+        String connectedDevice = device.getName(); // Get other device name so we later display on the chat
+    }
+
+    void sendMessageToService(short flag) {
+        sendMessageToService(flag, null);
+    }
+
+    void sendMessageToService(short flag, Object obj) {
+        try {
+            Message msg = Message.obtain(null, flag, obj);
+            msg.replyTo = clientChannel;
+            serviceChannel.send(msg);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -103,7 +114,9 @@ public class BluetoothChatMessages extends AppCompatActivity {
                 if(!message.isEmpty())
                 {
                     createMessage.setText("");
-                    connectedThread.write(message.getBytes());
+                    //connectedThread.write(message.getBytes());
+                    sendMessageToService(MESSAGE_WRITE,message.getBytes());
+                    adapterMainChat.add("Me: " + message);
                     // Will send the message to connectThread who will send it to the message handler.
                 }
             }
@@ -111,187 +124,42 @@ public class BluetoothChatMessages extends AppCompatActivity {
     }
 
     /**
-     * Thread will listen for a bluetooth connection request.
-     * Returns, when connection either fails or succeeds. Only one connection per thread
+     * Class for interacting with the main interface of the service.
      */
-    private class ServerThread extends Thread {
-        private final BluetoothServerSocket myServerSocket;
-
-        public ServerThread() {
-            BluetoothServerSocket tmp = null;
-            Log.i(TAG0, "Listening to connections");
-            try {
-                tmp = btAdapter.listenUsingRfcommWithServiceRecord(NAME, MY_UUID);
-            } catch (IOException e) {
-                Log.e(TAG0, "Server Socket failed to listen", e);
-            }
-            myServerSocket = tmp;
-        }
-
-        public void run() {
-            BluetoothSocket socket = null;
-            try {
-                socket = myServerSocket.accept();
-                Log.i(TAG0, "Connection success");
-                connectedThread = new ConnectedThread(socket);
-                connectedThread.start();
-            } catch (IOException e) {
-                Log.e(TAG0, "Failed in accepting server socket", e);
-            }
-            this.cancel();
-        }
-
-        public void cancel() {
-            try {
-                myServerSocket.close();
-            } catch (IOException e) {
-                Log.e(TAG0, "Failed in closing server socket", e);
-            }
-        }
-    }
-
-    /**
-     * Thread will request a connection to a device. Returns when it fails or succeeds.
-     * Only one request per thread
-     */
-    private class ClientThread extends Thread {
-        private final BluetoothSocket mySocket;
-
-        public ClientThread(BluetoothDevice device) {
-            BluetoothSocket temp = null;
-            Log.i(TAG1, "Trying to connect with " + device.getName());
-            try {
-                temp = device.createRfcommSocketToServiceRecord(MY_UUID);
-            } catch (IOException e) {
-                Log.e(TAG1, "Failed to create socket", e);
-            }
-            mySocket = temp;
-        }
-
-        public void run() {
-            btAdapter.cancelDiscovery();
-            try {
-                mySocket.connect();
-                Log.i(TAG1, "Connection success");
-                connectedThread = new ConnectedThread(mySocket);
-                connectedThread.start();
-            } catch (IOException e) {
-                Log.e(TAG1, "Failed to connect to socket", e);
-                this.cancel();
-            }
-        }
-
-        public void cancel() {
-            try {
-                mySocket.close();
-            } catch (IOException e1) {
-                Log.e(TAG1, "Failed to close socket", e1);
-            }
-        }
-    }
-
-
-    /**
-     * Thread will handle receiving and sending messages.
-     */
-    private class ConnectedThread extends Thread {
-        private final BluetoothSocket mySocket;
-        private final InputStream myIn;
-        private final OutputStream myOut;
-
-        private byte[] myBuffer;
-        private static final int BUFFER_SIZE = 1024;
-
-        public ConnectedThread(BluetoothSocket socket) {
-            mySocket = socket;
-            InputStream tempIn = null;
-            OutputStream tempOut = null;
-            Log.i(TAG2, "Create connected Thread");
-
-            try{
-                tempIn = socket.getInputStream();
-            } catch (IOException e) {
-                Log.e(TAG2, "Failed to get input stream");
-            }
-
-            try{
-                tempOut = socket.getOutputStream();
-            } catch (IOException e) {
-                Log.e(TAG2, "Failed to get output stream");
-            }
-            myIn = tempIn;
-            myOut = tempOut;
-        }
-
-        public void run() {
-            myBuffer = new byte[BUFFER_SIZE];
-            int byteRead;
-            while (true) {
-                try {
-                    /* Receive input and pass it to handler */
-                    byteRead = myIn.read(myBuffer);
-                    handler.obtainMessage(MESSAGE_READ, byteRead, -1, myBuffer).sendToTarget();
-                    Log.i(TAG2, new String(myBuffer));
-                } catch(IOException e) {
-                    Log.e(TAG2, "Input stream was disconnected");
-                }
-            }
-        }
-
-        public void write(byte[] message) {
-            try {
-                /* Read input and send message to handler */
-                myOut.write(message);
-                handler.obtainMessage(MESSAGE_WRITE, -1, -1, message).sendToTarget();
-                Log.i(TAG2, "Sending Message");
-            } catch(IOException e) {
-                Log.e(TAG2, "Failed to send data");
-            }
-        }
-
-    }
-
-    /**
-     * This handler will deal will take care of the messages we receive/send.
-     * Will also take care of the UI so we can see the messages we receive/send.
-     */
-
-    private Handler handler = new Handler(new Handler.Callback() {
+    private ServiceConnection connection = new ServiceConnection() {
         @Override
-        public boolean handleMessage(Message message) {
-            switch (message.what) {
-                case MESSAGE_WRITE:
-                    /*Read our input and put in display(UI) as "Me: %message%" */
-                    byte[] buffer1 = (byte[]) message.obj;
-                    String outputBuffer = new String(buffer1);
-                    adapterMainChat.add("Me: " + outputBuffer);
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            serviceChannel = new Messenger(service);
+            Log.i(TAG, "Attached to service");
+            isBoundToService = true;
+
+            // We want to monitor the service for as long as we are
+            // connected to it.
+            sendMessageToService(REGISTER_CLIENT);
+        }
+
+        // This is called when the connection with the service has been
+        // unexpectedly disconnected -- that is, its process crashed.
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            serviceChannel = null;
+            Log.i(TAG, "Disconnected from service");
+        }
+    };
+
+    class MessageHandler extends Handler {
+        @Override
+        public void handleMessage(Message msg) {
+            Log.i(TAG, "Message received: " + msg.what);
+
+            switch(msg.what) {
+                case REGISTER_CLIENT:
                     break;
-                case MESSAGE_READ:
-                    /*Receive input and put in display(UI) as "%user%: %message%" */
-                    byte[] buffer = (byte[]) message.obj;
-                    String inputBuffer = new String(buffer, 0, message.arg1);
-                    adapterMainChat.add(connectedDevice + ": " + inputBuffer);
-                    break;
-                case MESSAGE_DEVICE_NAME:
-                    /*Show the connected device message*/
-                    connectedDevice = message.getData().getString(DEVICE_NAME);
-                    Toast.makeText(context, connectedDevice, Toast.LENGTH_SHORT).show();
-                    break;
-                case MESSAGE_TOAST:
-                    /* Show our message */
-                    Toast.makeText(context, message.getData().getString(TOAST), Toast.LENGTH_SHORT).show();
+
+                default:
                     break;
             }
-            return false;
         }
-    });
-
-    /**
-     * Method will create a new server thread, that will listen for upcoming connection requests.
-     */
-    public void newServerThread() {
-        serverThread = new ServerThread();
-        serverThread.start();
     }
 
 }

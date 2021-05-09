@@ -22,7 +22,9 @@ import androidx.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Set;
 import java.util.UUID;
 
 public class BluetoothService extends Service implements BluetoothState {
@@ -88,6 +90,9 @@ public class BluetoothService extends Service implements BluetoothState {
 
                     if ( btAdapter.isDiscovering() ) {
                         Log.i(TAG, "Discovery mode is already running");
+                        btAdapter.cancelDiscovery();
+                        Log.i(TAG, "Restarting discovery");
+                        btAdapter.startDiscovery();
                     }
                     else {
                         // We assume that however asked us to start discovering has
@@ -142,6 +147,10 @@ public class BluetoothService extends Service implements BluetoothState {
                 case BT_GET_DEVICES:
                     Log.i(TAG, "Someone request the known devices");
                     sendSimpleMessage(msg.replyTo, BT_GET_DEVICES, knownDevices);
+                    for(BluetoothDevice deviceb : knownDevices)
+                    {
+                        Log.d(TAG,"THE DEVICE:"+deviceb);
+                    }
                     break;
 
                 case START_LISTENING:
@@ -154,9 +163,15 @@ public class BluetoothService extends Service implements BluetoothState {
 
                     if ( clientThread != null )
                         clientThread.cancel();
-
                     clientThread = new ClientThread((BluetoothDevice) msg.obj);
                     break;
+
+                case MESSAGE_WRITE:
+                    /*Read our input and put in display(UI) as "Me: %message%" */
+                    byte[] buffer1 = (byte[]) obtainMessage().obj;
+                    String outputBuffer = new String(buffer1);
+                    break;
+
 
                 default:
                     Log.i(TAG, "Unprocessed flag: " + msg.what);
@@ -203,6 +218,7 @@ public class BluetoothService extends Service implements BluetoothState {
 
         btAdapter = BluetoothAdapter.getDefaultAdapter();
 
+
         /* Crete new filter*/
         IntentFilter filter = new IntentFilter();
 
@@ -211,6 +227,7 @@ public class BluetoothService extends Service implements BluetoothState {
         filter.addAction(BluetoothDevice.ACTION_FOUND);
         filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
         filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+
 
         /* Register the receiver with the android system.*/
         registerReceiver(receiver, filter);
@@ -234,20 +251,24 @@ public class BluetoothService extends Service implements BluetoothState {
     /**
      * BroadCast receiver definition. Used to receive notification from android system
      */
-    private final BroadcastReceiver receiver = new BroadcastReceiver() {
+    private final BroadcastReceiver receiver = new BroadcastReceiver()
+    {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
+            Log.d(TAG, "onReceive: ACTION FOUND.");
 
             // Receives a broadcast that discovery mode has stated and informs
             // all the clients of this info
             if (BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(action)) {
-                Log.i(TAG, "Discovery mode has stated");
+                Log.i(TAG, "Discovery mode has started");
                 sendAllSimpleMessage(BT_START_DISCOVERY, null);
             }
             // Receives a broadcast that discovery mode has ended
-            else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
+            else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action))
+            {
                 Log.i(TAG, "Discovery mode has ended");
+                if(knownDevices.size()==0)Log.i(TAG,"No devices were found.");
                 sendAllSimpleMessage(BT_END_DISCOVERY, null);
             }
 
@@ -274,7 +295,8 @@ public class BluetoothService extends Service implements BluetoothState {
             }
 
             // Discovery mode has found a device
-            else if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+            else if (BluetoothDevice.ACTION_FOUND.equals(action))
+            {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
 
                 Log.i(TAG, "Device found " + device.getName());
