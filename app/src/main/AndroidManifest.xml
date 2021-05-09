@@ -17,11 +17,13 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MobileChatApp">
-        <activity android:name=".BluetoothChatMessages"></activity>
+        <activity android:name=".TestService"></activity>
+        <activity android:name=".BluetoothChatMessages" />
         <activity android:name=".BluetoothChat" />
         <activity android:name=".Profile_Settings" />
         <activity android:name=".Profile" />
         <activity android:name=".BluetoothSettings" />
+        <activity android:name=".BluetoothSetting" />
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -29,6 +31,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service android:name=".BluetoothService" />
     </application>
 
 </manifest>

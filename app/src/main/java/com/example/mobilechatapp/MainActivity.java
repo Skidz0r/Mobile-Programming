@@ -7,42 +7,50 @@ import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity{
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+            super.onCreate(savedInstanceState);
+            setContentView(R.layout.activity_main);
 
-        Button btConnect = (Button)findViewById(R.id.bluetoothSettingsButton);
-        Button profile = (Button)findViewById(R.id.profileButton);
-        Button chat = (Button)findViewById(R.id.chatButton);
+            Button btConnect = (Button)findViewById(R.id.bluetoothSettingsButton);
+            Button profile = (Button)findViewById(R.id.profileButton);
+            Button chat = (Button)findViewById(R.id.chatButton);
+            Button testService = (Button) findViewById(R.id.testService);
 
-        btConnect.setOnClickListener(new View.OnClickListener()
-        {
-            @Override
-            public void onClick(View v)
+            btConnect.setOnClickListener(new View.OnClickListener()
             {
-                Intent btConnectIntent = new Intent(getApplicationContext(), BluetoothSettings.class);
-                startActivity(btConnectIntent);
-            }
-        });
+                @Override
+                public void onClick(View v)
+                {
+                    Intent btConnectIntent = new Intent(getApplicationContext(), BluetoothSetting.class);
+                    startActivity(btConnectIntent);
+                }
+            });
 
-        profile.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent profile_button = new Intent(getApplicationContext(), Profile.class);
-                startActivity(profile_button);
-            }
-        });
+            profile.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Intent profile_button = new Intent(getApplicationContext(), Profile.class);
+                    startActivity(profile_button);
+                }
+            });
 
-        chat.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent chatIntent = new Intent(getApplicationContext(), BluetoothChat.class);
-                startActivity(chatIntent);
-            }
-        });
+            chat.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent chatIntent = new Intent(getApplicationContext(), BluetoothChat.class);
+                    startActivity(chatIntent);
+                }
+            });
 
+            testService.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent testIntent = new Intent(getApplicationContext(), TestService.class);
+                    startActivity(testIntent);
+                }
+            });
     }
 }
