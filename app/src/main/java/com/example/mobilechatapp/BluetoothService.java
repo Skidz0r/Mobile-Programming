@@ -22,9 +22,7 @@ import androidx.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Set;
 import java.util.UUID;
 
 public class BluetoothService extends Service implements BluetoothState {
@@ -105,19 +103,15 @@ public class BluetoothService extends Service implements BluetoothState {
                     if ( serverThread != null )
                         serverThread.cancel();
 
+                    serverThread = new ServerThread();
+
                     break;
 
                 case BT_END_DISCOVERY:
                     Log.i(TAG,"Someone asked to stop discovery mode");
 
                     if ( btAdapter.isDiscovering() ) {
-                        if ( btAdapter.isDiscovering() )
-                            btAdapter.cancelDiscovery();
-
-                        if ( serverThread != null )
-                            serverThread.cancel();
-
-                        serverThread = new ServerThread();
+                        btAdapter.cancelDiscovery();
                     }
                     else
                         Log.i(TAG, "Discovery was not on");
@@ -161,9 +155,21 @@ public class BluetoothService extends Service implements BluetoothState {
                 case CONNECT:
                     Log.i(TAG, "Connection request with device");
 
-                    if ( clientThread != null )
-                        clientThread.cancel();
-                    clientThread = new ClientThread((BluetoothDevice) msg.obj);
+                    BluetoothDevice dev = (BluetoothDevice) msg.obj;
+
+                    if ( dev.getBondState() == BluetoothDevice.BOND_NONE ) {
+                        Log.i(TAG, "Device not bounded. Trying to create bound");
+
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                            dev.createBond();
+                        }
+                    }
+
+                    else {
+                        ClientThread temp = new ClientThread(dev);
+                        temp.start();
+                    }
+
                     break;
 
                 case MESSAGE_WRITE:
@@ -325,6 +331,9 @@ public class BluetoothService extends Service implements BluetoothState {
                         Log.i(TAG, "Device bonded");
                         unboundedDevices.remove(device);
                         sendAllSimpleMessage(BT_DEVICE_BOUND, device);
+                        Log.i(TAG, "Trying to connect to other device");
+                        ClientThread temp = new ClientThread(device);
+                        temp.start();
                         break;
 
                     case BluetoothDevice.BOND_NONE:
@@ -386,6 +395,7 @@ public class BluetoothService extends Service implements BluetoothState {
                     connectedThread.add(temp);
 
                     Log.i(TAG0, "Connection success");
+                    temp.write("Hello from server".getBytes());
                 }catch (IOException e) {
                     Log.e(TAG0, "Failed in accepting server socket", e);
                 }
@@ -433,6 +443,7 @@ public class BluetoothService extends Service implements BluetoothState {
                 connectedThread.add(temp);
 
                 Log.i(TAG1, "Connection success");
+                temp.write("hello from client!".getBytes());
             } catch (IOException e) {
                 Log.e(TAG1, "Failed to connect to socket", e);
                 this.cancel();
@@ -494,7 +505,9 @@ public class BluetoothService extends Service implements BluetoothState {
 
             while (true) {
                 try {
+                    Log.i(TAG2, "Before read");
                     byteRead = myIn.read(myBuffer);
+                    Log.i(TAG2, "After read");
                     Log.i(TAG2, new String(myBuffer));
                 } catch(IOException e) {
                     Log.e(TAG2, "Input stream was disconnected");

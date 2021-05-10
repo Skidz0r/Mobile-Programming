@@ -3,12 +3,10 @@ package com.example.mobilechatapp;
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -191,9 +189,9 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
                 ActivityCompat.requestPermissions(BluetoothChat.this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},MY_PERMISSION_REQUEST_CONSTANT);
                 if ( !btAdapter.isDiscovering() )
                     sendMessageToService(BT_START_DISCOVERY);
+
                 else {
                     sendMessageToService(BT_END_DISCOVERY);
-                    sendMessageToService(BT_START_DISCOVERY);
                 }
             }
         });
@@ -231,9 +229,7 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
         mAdapter.setOnItemClickListener(new DeviceRecyclerAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(int position) {
-                ActivityCompat.requestPermissions(BluetoothChat.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},MY_PERMISSION_REQUEST_CONSTANT);
-                ActivityCompat.requestPermissions(BluetoothChat.this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},MY_PERMISSION_REQUEST_CONSTANT);
-                Log.d(TAG, "Item clicked");
+                Log.i(TAG, "Item clicked");
                 sendMessageToService(CONNECT, knownDevices.get(position));
                 Intent openChat = new Intent(BluetoothChat.this,BluetoothChatMessages.class);
                 openChat.putExtra("btdevice",knownDevices.get(position));
