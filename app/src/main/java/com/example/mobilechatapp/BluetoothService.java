@@ -99,12 +99,6 @@ public class BluetoothService extends Service implements BluetoothState {
                         knownDevices.clear();
                         btAdapter.startDiscovery();
                     }
-
-                    if ( serverThread != null )
-                        serverThread.cancel();
-
-                    serverThread = new ServerThread();
-
                     break;
 
                 case BT_END_DISCOVERY:
@@ -165,7 +159,7 @@ public class BluetoothService extends Service implements BluetoothState {
                         }
                     }
 
-                    else {
+                    else if ( !checkConnection(dev) ){
                         ClientThread temp = new ClientThread(dev);
                         temp.start();
                     }
@@ -178,11 +172,26 @@ public class BluetoothService extends Service implements BluetoothState {
                     String outputBuffer = new String(buffer1);
                     break;
 
-
                 default:
                     Log.i(TAG, "Unprocessed flag: " + msg.what);
             }
         }
+    }
+
+    /**
+     * Checks if we already have a connection with device
+     *
+     * @param device
+     * @return
+     */
+    boolean checkConnection(BluetoothDevice device) {
+
+        for( ConnectedThread thread: connectedThread) {
+            if ( thread.connectedDevice.equals(device) )
+                return true;
+        }
+
+        return false;
     }
 
     /**
@@ -395,21 +404,23 @@ public class BluetoothService extends Service implements BluetoothState {
                     connectedThread.add(temp);
 
                     Log.i(TAG0, "Connection success");
-                    temp.write("Hello from server".getBytes());
                 }catch (IOException e) {
                     Log.e(TAG0, "Failed in accepting server socket", e);
                 }
             }
+
+            Log.i(TAG0, "Server thread end");
         }
 
         public void cancel() {
-            Log.i(TAG, "Server thread stop");
             try {
                 myServerSocket.close();
                 myServerSocket = null;
             } catch (IOException e) {
                 Log.e(TAG0, "Failed in closing server socket", e);
             }
+
+            Log.i(TAG0, "Closing server thread");
         }
     }
 
@@ -443,10 +454,11 @@ public class BluetoothService extends Service implements BluetoothState {
                 connectedThread.add(temp);
 
                 Log.i(TAG1, "Connection success");
-                temp.write("hello from client!".getBytes());
             } catch (IOException e) {
                 Log.e(TAG1, "Failed to connect to socket", e);
                 this.cancel();
+            } finally {
+                Log.i(TAG2, "Client thread end");
             }
         }
 
@@ -505,20 +517,22 @@ public class BluetoothService extends Service implements BluetoothState {
 
             while (true) {
                 try {
-                    Log.i(TAG2, "Before read");
                     byteRead = myIn.read(myBuffer);
-                    Log.i(TAG2, "After read");
+
                     Log.i(TAG2, new String(myBuffer));
                 } catch(IOException e) {
                     Log.e(TAG2, "Input stream was disconnected");
+                    connectedThread.remove(this);
+                    break;
                 }
             }
         }
 
         public void write(byte[] message) {
             try {
+                Log.i(TAG2, "Trying to send message");
                 myOut.write(message);
-                Log.i(TAG2, "Sending Message");
+                Log.i(TAG2, "Message send");
             } catch(IOException e) {
                 Log.e(TAG2, "Failed to send data");
             }
