@@ -17,7 +17,6 @@ public class MainActivity extends AppCompatActivity{
             Button btConnect = (Button)findViewById(R.id.bluetoothSettingsButton);
             Button profile = (Button)findViewById(R.id.profileButton);
             Button chat = (Button)findViewById(R.id.chatButton);
-            Button testService = (Button) findViewById(R.id.testService);
 
             btConnect.setOnClickListener(new View.OnClickListener()
             {
@@ -42,14 +41,6 @@ public class MainActivity extends AppCompatActivity{
                 public void onClick(View v) {
                     Intent chatIntent = new Intent(getApplicationContext(), BluetoothChat.class);
                     startActivity(chatIntent);
-                }
-            });
-
-            testService.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Intent testIntent = new Intent(getApplicationContext(), TestService.class);
-                    startActivity(testIntent);
                 }
             });
     }
