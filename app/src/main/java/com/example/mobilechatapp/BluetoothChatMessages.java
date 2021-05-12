@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.Handler;
@@ -77,6 +78,7 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
         /* Important stuff for main chat */
         context = BluetoothChatMessages.this;
         load_main_chat();
+        doBindService();
 
         /* Start Conection to other device */
         BluetoothDevice device= getIntent().getExtras().getParcelable("btdevice"); // Gets the device from BluetoothChat.class
@@ -90,6 +92,17 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
     void sendMessageToService(short flag, Object obj) {
         try {
             Message msg = Message.obtain(null, flag, obj);
+            msg.replyTo = clientChannel;
+            serviceChannel.send(msg);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    void sendMessageToService(Handler handler,short flag, String message) {
+        try {
+            Log.i(TAG,"Handler:"+handler+"  Flag:"+flag+"  Message:"+message);
+            Message msg = Message.obtain(handler, flag, message);
             msg.replyTo = clientChannel;
             serviceChannel.send(msg);
         } catch (RemoteException e) {
@@ -115,7 +128,7 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
                 {
                     createMessage.setText("");
                     //connectedThread.write(message.getBytes());
-                    sendMessageToService(MESSAGE_WRITE,message.getBytes());
+                    sendMessageToService(BluetoothService.handler,MESSAGE_WRITE,message);
                     adapterMainChat.add("Me: " + message);
                     // Will send the message to connectThread who will send it to the message handler.
                 }
@@ -159,6 +172,21 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
                 default:
                     break;
             }
+        }
+    }
+
+    /**
+     * Bind to service
+     */
+    void doBindService() {
+        if (isBoundToService) {
+            Log.i(TAG, "Client already bound to service");
+        } else {
+            // Establish a connection with the service.  We use an explicit
+            // class name because there is no reason to be able to let other
+            // applications replace our component.
+            Log.i(TAG, "Attempting to bind to a service");
+            bindService(new Intent(BluetoothChatMessages.this, BluetoothService.class), connection, Context.BIND_AUTO_CREATE);
         }
     }
 

@@ -16,6 +16,7 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 
@@ -40,7 +41,7 @@ public class BluetoothService extends Service implements BluetoothState {
     final String TAG0 = "ServiceServerThread";
     final String TAG1 = "ServiceClientThread";
     final String TAG2 = "ServiceConnectionThread";
-
+    /* References to threads*/
     /**
      * Handler of incoming messages from clients
      */
@@ -99,6 +100,12 @@ public class BluetoothService extends Service implements BluetoothState {
                         knownDevices.clear();
                         btAdapter.startDiscovery();
                     }
+
+                    if ( serverThread != null )
+                        serverThread.cancel();
+
+                    serverThread = new ServerThread();
+
                     break;
 
                 case BT_END_DISCOVERY:
@@ -142,7 +149,7 @@ public class BluetoothService extends Service implements BluetoothState {
                     break;
 
                 case START_LISTENING:
-                    if ( serverThread != null)
+                   // if ( serverThread != null)
                         serverThread = new ServerThread();
                     break;
 
@@ -151,47 +158,25 @@ public class BluetoothService extends Service implements BluetoothState {
 
                     BluetoothDevice dev = (BluetoothDevice) msg.obj;
 
-                    if ( dev.getBondState() == BluetoothDevice.BOND_NONE ) {
+                    if ( dev.getBondState() == BluetoothDevice.BOND_NONE )
+                    {
                         Log.i(TAG, "Device not bounded. Trying to create bound");
-
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
+                        {
                             dev.createBond();
                         }
                     }
 
-                    else if ( !checkConnection(dev) ){
+                    else {
                         ClientThread temp = new ClientThread(dev);
                         temp.start();
                     }
-
-                    break;
-
-                case MESSAGE_WRITE:
-                    /*Read our input and put in display(UI) as "Me: %message%" */
-                    byte[] buffer1 = (byte[]) obtainMessage().obj;
-                    String outputBuffer = new String(buffer1);
                     break;
 
                 default:
                     Log.i(TAG, "Unprocessed flag: " + msg.what);
             }
         }
-    }
-
-    /**
-     * Checks if we already have a connection with device
-     *
-     * @param device
-     * @return
-     */
-    boolean checkConnection(BluetoothDevice device) {
-
-        for( ConnectedThread thread: connectedThread) {
-            if ( thread.connectedDevice.equals(device) )
-                return true;
-        }
-
-        return false;
     }
 
     /**
@@ -393,6 +378,7 @@ public class BluetoothService extends Service implements BluetoothState {
             Log.i(TAG, "Listening to connections");
 
             while(myServerSocket != null) {
+                Log.i(TAG2,"Server listenning");
                 BluetoothSocket socket = null;
 
                 try {
@@ -403,7 +389,7 @@ public class BluetoothService extends Service implements BluetoothState {
 
                     connectedThread.add(temp);
 
-                    Log.i(TAG0, "Connection success");
+                    Log.i(TAG0, "Connection success server side");
                 }catch (IOException e) {
                     Log.e(TAG0, "Failed in accepting server socket", e);
                 }
@@ -413,14 +399,13 @@ public class BluetoothService extends Service implements BluetoothState {
         }
 
         public void cancel() {
+            Log.i(TAG, "Server thread stop");
             try {
                 myServerSocket.close();
                 myServerSocket = null;
             } catch (IOException e) {
                 Log.e(TAG0, "Failed in closing server socket", e);
             }
-
-            Log.i(TAG0, "Closing server thread");
         }
     }
 
@@ -448,17 +433,17 @@ public class BluetoothService extends Service implements BluetoothState {
         public void run() {
             try {
                 mySocket.connect();
+
                 ConnectedThread temp = new ConnectedThread(mySocket, mySocket.getRemoteDevice());
                 temp.start();
-
+                temp.write("hello from client!".getBytes());
                 connectedThread.add(temp);
 
-                Log.i(TAG1, "Connection success");
+                Log.i(TAG1, "Connection success client side");
+                temp.write("hello from client!".getBytes());
             } catch (IOException e) {
                 Log.e(TAG1, "Failed to connect to socket", e);
                 this.cancel();
-            } finally {
-                Log.i(TAG2, "Client thread end");
             }
         }
 
@@ -497,14 +482,9 @@ public class BluetoothService extends Service implements BluetoothState {
 
             try{
                 tempIn = socket.getInputStream();
-            } catch (IOException e) {
-                Log.e(TAG2, "Failed to get input stream");
-            }
-
-            try{
                 tempOut = socket.getOutputStream();
             } catch (IOException e) {
-                Log.e(TAG2, "Failed to get output stream");
+                Log.e(TAG2, "Failed to get input stream");
             }
 
             myIn = tempIn;
@@ -512,31 +492,54 @@ public class BluetoothService extends Service implements BluetoothState {
         }
 
         public void run() {
-            int byteRead;
             myBuffer = new byte[BUFFER_SIZE];
-
+            int byteRead;
             while (true) {
                 try {
                     byteRead = myIn.read(myBuffer);
-
-                    Log.i(TAG2, new String(myBuffer));
+                    handler.obtainMessage(MESSAGE_READ, byteRead, -1, myBuffer).sendToTarget();
+                    Log.i(TAG2, "Reading message: "+new String(myBuffer));
+                    // Still can't catch the messages
                 } catch(IOException e) {
                     Log.e(TAG2, "Input stream was disconnected");
-                    connectedThread.remove(this);
-                    break;
                 }
             }
         }
 
         public void write(byte[] message) {
-            try {
-                Log.i(TAG2, "Trying to send message");
+            try
+            {
                 myOut.write(message);
-                Log.i(TAG2, "Message send");
-            } catch(IOException e) {
+                handler.obtainMessage(MESSAGE_WRITE, -1, -1, message).sendToTarget();
+                Log.i(TAG2, "Sending Message");
+            }
+            catch(IOException e)
+            {
                 Log.e(TAG2, "Failed to send data");
             }
         }
     }
+
+    public static Handler handler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(Message message) {
+            switch (message.what) {
+                case MESSAGE_WRITE:
+                    /*Read our input and put in display(UI) as "Me: %message%" */
+                    byte[] buffer1 = (byte[]) message.obj;
+                    String outputBuffer = new String(buffer1);
+                    //adapterMainChat.add("Me: " + outputBuffer);
+                    break;
+                case MESSAGE_READ:
+                    /*Receive input and put in display(UI) as "%user%: %message%" */
+                    byte[] buffer = (byte[]) message.obj;
+                    String inputBuffer = new String(buffer, 0, message.arg1);
+                   // adapterMainChat.add(connectedDevice + ": " + inputBuffer);
+            }
+            return false;
+        }
+    });
+
+
 }
 

@@ -175,7 +175,6 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
         setContentView(R.layout.activity_bluetooth_chat);
 
         discovery = (Button)findViewById(R.id.DiscoverButton);
-
         doBindService();
     }
 
@@ -184,7 +183,8 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
         discovery.setOnClickListener(new View.OnClickListener() {
             @RequiresApi(api = Build.VERSION_CODES.M)
             @Override
-            public void onClick(View v) {
+            public void onClick(View v)
+            {
                 ActivityCompat.requestPermissions(BluetoothChat.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},MY_PERMISSION_REQUEST_CONSTANT);
                 ActivityCompat.requestPermissions(BluetoothChat.this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},MY_PERMISSION_REQUEST_CONSTANT);
                 if ( !btAdapter.isDiscovering() )
@@ -194,6 +194,7 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
                     sendMessageToService(BT_END_DISCOVERY);
                 }
             }
+
         });
 
         askForKnownDevices();
