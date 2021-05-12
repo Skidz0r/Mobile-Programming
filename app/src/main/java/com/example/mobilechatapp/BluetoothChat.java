@@ -1,6 +1,5 @@
 package com.example.mobilechatapp;
 
-import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.ComponentName;
@@ -20,7 +19,6 @@ import android.widget.Button;
 
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -175,33 +173,57 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
         setContentView(R.layout.activity_bluetooth_chat);
 
         discovery = (Button)findViewById(R.id.DiscoverButton);
+
         doBindService();
     }
 
+    private final short REQUEST_ENABLE_DISCOVERY = 1;
 
     public void initialSetUp() {
         discovery.setOnClickListener(new View.OnClickListener() {
             @RequiresApi(api = Build.VERSION_CODES.M)
             @Override
-            public void onClick(View v)
-            {
-                ActivityCompat.requestPermissions(BluetoothChat.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},MY_PERMISSION_REQUEST_CONSTANT);
-                ActivityCompat.requestPermissions(BluetoothChat.this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},MY_PERMISSION_REQUEST_CONSTANT);
-                if ( !btAdapter.isDiscovering() )
+            public void onClick(View v) {
+                if ( !btAdapter.isDiscovering() ) {
+                    Intent enableBtIntent =
+                            new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+                    startActivityForResult(enableBtIntent, REQUEST_ENABLE_DISCOVERY);
                     sendMessageToService(BT_START_DISCOVERY);
+                }
 
                 else {
                     sendMessageToService(BT_END_DISCOVERY);
                 }
             }
-
         });
 
         askForKnownDevices();
 
         initiateRecyclerView();
 
+        Log.i(TAG, "Aasdasd");
         sendMessageToService(START_LISTENING);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        switch(requestCode) {
+            case REQUEST_ENABLE_DISCOVERY:
+                if ( resultCode == RESULT_CANCELED ) {
+                    Log.d(TAG, "Discovery request failed");
+                }
+
+                else {
+                    Log.i(TAG, "Discovery request accepted");
+                    sendMessageToService(BT_START_DISCOVERY);
+                }
+                break;
+
+            default:
+                break;
+        }
     }
 
 
@@ -232,9 +254,9 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
             public void onItemClick(int position) {
                 Log.i(TAG, "Item clicked");
                 sendMessageToService(CONNECT, knownDevices.get(position));
-                Intent openChat = new Intent(BluetoothChat.this,BluetoothChatMessages.class);
-                openChat.putExtra("btdevice",knownDevices.get(position));
-                startActivity(openChat);
+                //Intent openChat = new Intent(BluetoothChat.this,BluetoothChatMessages.class);
+                //openChat.putExtra("btdevice",knownDevices.get(position));
+                //startActivity(openChat);
             }
         });
     }

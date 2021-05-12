@@ -10,6 +10,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -17,12 +18,10 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MobileChatApp">
-        <activity android:name=".TestService" />
         <activity android:name=".BluetoothChatMessages" />
         <activity android:name=".BluetoothChat" />
         <activity android:name=".Profile_Settings" />
         <activity android:name=".Profile" />
-        <activity android:name=".BluetoothSettings" />
         <activity android:name=".BluetoothSetting" />
         <activity android:name=".MainActivity">
             <intent-filter>
