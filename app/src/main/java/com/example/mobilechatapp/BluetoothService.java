@@ -9,7 +9,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.nfc.Tag;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -23,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.UUID;
 
 public class BluetoothService extends Service implements BluetoothState {
@@ -92,13 +95,13 @@ public class BluetoothService extends Service implements BluetoothState {
                         Log.i(TAG, "Restarting discovery");
                         btAdapter.startDiscovery();
                     }
-                    else {
                         // We assume that however asked us to start discovering has
                         // user permission
                         unboundedDevices.clear();
+                    Log.i("CLEAR BEFORE:",knownDevices.toString());
                         knownDevices.clear();
+                        Log.i("CLEAR AFTER:",knownDevices.toString());
                         btAdapter.startDiscovery();
-                    }
                     break;
 
                 case BT_END_DISCOVERY:
@@ -161,11 +164,6 @@ public class BluetoothService extends Service implements BluetoothState {
 
                     break;
 
-                case MESSAGE_WRITE:
-                    /*Read our input and put in display(UI) as "Me: %message%" */
-                    byte[] buffer1 = (byte[]) obtainMessage().obj;
-                    String outputBuffer = new String(buffer1);
-                    break;
 
                 default:
                     Log.i(TAG, "Unprocessed flag: " + msg.what);
@@ -181,8 +179,29 @@ public class BluetoothService extends Service implements BluetoothState {
      * @param obj object to send
      */
     void sendSimpleMessage(Messenger destiny, short response, Object obj) {
-        Message msg = obj == null ? Message.obtain(null, response) : Message.obtain(null, response, obj);
+        Message msg = (obj == null) ? Message.obtain(null, response) : Message.obtain(null, response, obj);
+        try {
+            destiny.send(msg);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
 
+    /**
+     * Send message to a specific registered client
+     *
+     * @param destiny {@link Messenger} client to send message
+     * @param response response to send (In this case MESSAGE_READ which is 19).
+     * @param message The text message
+     * @param deviceName What device sent us the text message {@param message}
+     */
+    void sendMessageToRead(Messenger destiny , short response , String message, String deviceName)
+    {
+        Message msg = (message == null) ? Message.obtain(null, response) : Message.obtain(null, response, message);
+        Bundle bundle = new Bundle();
+        bundle.putString("message",message);
+        bundle.putString("device",deviceName);
+        msg.setData(bundle);
         try {
             destiny.send(msg);
         } catch (RemoteException e) {
@@ -196,10 +215,22 @@ public class BluetoothService extends Service implements BluetoothState {
      * @param response {@link BluetoothState} identification
      * @param obj Response object
      */
-    void sendAllSimpleMessage(short response, Object obj) {
+    void sendAllSimpleMessage(short response, Object obj)
+    {
         for (Messenger client : clients)
             sendSimpleMessage(client, response, obj);
     }
+
+
+    /**
+     * Send message with a text message associated to all registered clients
+     */
+    void sendMessageToReadShort(short response, String message, String deviceName)
+    {
+        for (Messenger client : clients)
+            sendMessageToRead(client, response, message,deviceName);
+    }
+
 
     /**
      * Target we publish for clients to send messages to handleMessage
@@ -292,21 +323,24 @@ public class BluetoothService extends Service implements BluetoothState {
             else if (BluetoothDevice.ACTION_FOUND.equals(action))
             {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-
                 Log.i(TAG, "Device found " + device.getName());
+                if(!knownDevices.contains(device))
+                {
 
-                // Check if device is not bonded and has a name
-                if (device.getBondState() == BluetoothDevice.BOND_NONE) {
-                    // Add device to array
-                    unboundedDevices.add(device);
+                    // Check if device is not bonded and has a name
+                    if (device.getBondState() == BluetoothDevice.BOND_NONE)
+                    {
+                        // Add device to array
+                        unboundedDevices.add(device);
 
-                    //Notify all clients. They may want the info,
-                    sendAllSimpleMessage(BT_UNBOUND_DEVICE_FOUND, device);
+                        //Notify all clients. They may want the info,
+                        sendAllSimpleMessage(BT_UNBOUND_DEVICE_FOUND, device);
+                    }
+                    knownDevices.add(device);
+
+
+                    sendAllSimpleMessage(BT_DEVICE_FOUND, device);
                 }
-
-                knownDevices.add(device);
-
-                sendAllSimpleMessage(BT_DEVICE_FOUND, device);
             }
 
             // Bluetooth has bonded or unbounded with some device
@@ -342,8 +376,8 @@ public class BluetoothService extends Service implements BluetoothState {
     /* References to threads*/
     private ServerThread serverThread = null;
     private ClientThread clientThread = null;
-    private ArrayList<ListenThread> listenThread = new ArrayList<>();
-    private ArrayList<SendThread> sendThread = new ArrayList<>();
+    public static ArrayList<ListenThread> listenThread = new ArrayList<>();
+    public static ArrayList<SendThread> sendThread = new ArrayList<>();
 
     /**
      * Thread will listen for a bluetooth connection request.
@@ -386,7 +420,6 @@ public class BluetoothService extends Service implements BluetoothState {
                     Log.e(TAG0, "Failed in accepting server socket", e);
                 }
 
-                sendThread.get(0).write("Hello from " + btAdapter.getName());
             }
 
             Log.i(TAG0, "Server thread end");
@@ -443,7 +476,6 @@ public class BluetoothService extends Service implements BluetoothState {
                 Log.i(TAG1, "Client thread end");
             }
 
-            sendThread.get(0).write("Hello from " + btAdapter.getName());
         }
 
         public void cancel() {
@@ -466,9 +498,9 @@ public class BluetoothService extends Service implements BluetoothState {
         sendThread.add(tempS);
     }
 
-    private class ListenThread extends Thread {
+    public class ListenThread extends Thread {
         private final BluetoothSocket mySocket;
-
+        private String deviceName;
         private final InputStream myIn;
 
         BluetoothDevice connectedDevice;
@@ -480,6 +512,7 @@ public class BluetoothService extends Service implements BluetoothState {
             Log.i(TAG2, "Creating listening thread");
             this.mySocket = mySocket;
             this.connectedDevice = device;
+            this.deviceName = device.getName();
 
             InputStream tempIn = null;
 
@@ -498,9 +531,14 @@ public class BluetoothService extends Service implements BluetoothState {
 
             while (true) {
                 try {
-                    byteRead = myIn.read(myBuffer);
-
-                    Log.i(TAG2, "New message: " + new String(myBuffer));
+                    if(myBuffer!=null)
+                    {
+                        byteRead = myIn.read(myBuffer);
+                        Log.i(TAG2, "New message: " + new String(myBuffer));
+                        String messageReceived = new String(myBuffer);
+                        sendMessageToReadShort(MESSAGE_READ,messageReceived,deviceName);
+                        clearBytes();
+                    }
                 } catch(IOException e) {
                     Log.e(TAG2, "Input stream was disconnected");
                     listenThread.remove(this);
@@ -509,9 +547,19 @@ public class BluetoothService extends Service implements BluetoothState {
             }
         }
 
+        private void clearBytes()
+        {
+            if(myBuffer!=null)
+            {
+                Arrays.fill(myBuffer,(byte)0);
+                Log.i("ClearBytes:","Buffer was cleared.");
+            }
+        }
+
+
     }
 
-    private class SendThread extends Thread {
+    public class SendThread extends Thread {
         private final BluetoothSocket mySocket;
 
         private final OutputStream myOut;
@@ -544,6 +592,8 @@ public class BluetoothService extends Service implements BluetoothState {
                 Log.e(TAG2, "Failed to send data");
             }
         }
+
     }
+
 }
 

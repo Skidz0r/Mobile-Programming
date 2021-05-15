@@ -201,7 +201,6 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
 
         initiateRecyclerView();
 
-        Log.i(TAG, "Aasdasd");
         sendMessageToService(START_LISTENING);
     }
 
@@ -254,9 +253,9 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
             public void onItemClick(int position) {
                 Log.i(TAG, "Item clicked");
                 sendMessageToService(CONNECT, knownDevices.get(position));
-                //Intent openChat = new Intent(BluetoothChat.this,BluetoothChatMessages.class);
-                //openChat.putExtra("btdevice",knownDevices.get(position));
-                //startActivity(openChat);
+                Intent openChat = new Intent(BluetoothChat.this,BluetoothChatMessages.class);
+                openChat.putExtra("btdevice",knownDevices.get(position));
+                startActivity(openChat);
             }
         });
     }

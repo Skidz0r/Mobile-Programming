@@ -31,7 +31,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.UUID;
 
-public class BluetoothChatMessages extends AppCompatActivity implements BluetoothState{
+public class BluetoothChatMessages extends AppCompatActivity implements BluetoothState {
     // Default android bluetooth adapter
     BluetoothAdapter btAdapter;
     // Holds a list of paired devices
@@ -127,13 +127,27 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
                 if(!message.isEmpty())
                 {
                     createMessage.setText("");
-                    //connectedThread.write(message.getBytes());
-                    sendMessageToService(BluetoothService.handler,MESSAGE_WRITE,message);
-                    adapterMainChat.add("Me: " + message);
-                    // Will send the message to connectThread who will send it to the message handler.
+                    sendMessageToDevice(message);
                 }
             }
         });
+    }
+
+    /**
+     * Method to send message to the other devices throwing exceptions in case its not possible.
+     */
+    public void sendMessageToDevice(String message)
+    {
+        if(BluetoothService.sendThread.size()>0)
+        {
+            try {
+                BluetoothService.sendThread.get(0).write(message); // More threads = get(i) (still need to work on that)
+                adapterMainChat.add("Me: " + message);
+            } catch(ArrayIndexOutOfBoundsException e)
+            {
+                Log.i("SendMessageMethod:","Devices were not connected thought a thread.");
+            }
+        }
     }
 
     /**
@@ -167,6 +181,12 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
 
             switch(msg.what) {
                 case REGISTER_CLIENT:
+                    break;
+
+                case MESSAGE_READ:
+                    String message = msg.getData().getString("message");
+                    String device = msg.getData().getString("device");
+                    adapterMainChat.add(device+": "+message);
                     break;
 
                 default:
