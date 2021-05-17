@@ -189,7 +189,8 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
             switch (msg.what) {
                 case MESSAGE_READ:
                     String message = msg.getData().getString("message");
-                    String device = msg.getData().getString("device");
+                    String deviceMac = msg.getData().getString("device");
+
                     adapterMainChat.add(device + ": " + message);
                     break;
 

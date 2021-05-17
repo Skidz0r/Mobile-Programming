@@ -33,7 +33,7 @@ public class BluetoothService extends Service implements BluetoothState {
     BluetoothAdapter btAdapter;
 
     /**
-     * List of unbounded devices
+     * List of unbounded devices                 
      */
     ArrayList<BluetoothDevice> unboundedDevices = new ArrayList<>();
     /**

@@ -188,7 +188,6 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState {
                 Intent enableBtIntent =
                         new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
                 startActivityForResult(enableBtIntent, REQUEST_ENABLE_DISCOVERY);
-                sendMessageToService(BT_START_DISCOVERY);
             } else {
                 sendMessageToService(BT_END_DISCOVERY);
             }
