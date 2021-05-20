@@ -2,8 +2,6 @@ package com.example.mobilechatapp;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothServerSocket;
-import android.bluetooth.BluetoothSocket;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -15,20 +13,16 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
-import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.UUID;
 
 public class BluetoothChatMessages extends AppCompatActivity implements BluetoothState {
@@ -36,6 +30,8 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
     BluetoothAdapter btAdapter;
     // Holds a list of paired devices
     ArrayList<BluetoothDevice> btArrayDevice;
+    // Connected device
+    private BluetoothDevice device;
 
     /* Recycler stuff */
     RecyclerView mRecyclerView;
@@ -51,27 +47,35 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
 
     /**
      * Messenger for communicating with service.
-     * */
+     */
     Messenger serviceChannel = null;
-    /** Flag indicating whether we have called bind on the service. */
+
+    /**
+     * Flag indicating whether we have called bind on the service.
+     */
     boolean isBoundToService = false;
+
     /**
      * Target we publish for clients to send messages to IncomingHandler.
      */
-    final Messenger clientChannel = new Messenger(new BluetoothChatMessages.MessageHandler());
+    final Messenger clientChannel = new Messenger(new MessageHandler());
 
-    /* Name of the app. Used in server thread, used to initialize a connection.*/
+    /**
+     * Name of the app. Used in server thread, used to initialize a connection.
+     */
     private final static String NAME = "MobileChatApp";
-    /* "Unique" UUID used in sever/client thread, used to initialize a connection*/
+
+    /**
+     * "Unique" UUID used in sever/client thread, used to initialize a connection
+     */
     private final static UUID MY_UUID = UUID.fromString("b885d9a0-b9a7-4a2a-b05d-b3aae45c9192");
 
     final String TAG = "BluetoothChat";
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_bluetooth_chat_messages); // Using chat_messages.xml layout
+        setContentView(R.layout.activity_bluetooth_chat_messages);
         btAdapter = BluetoothAdapter.getDefaultAdapter();
         btArrayDevice = new ArrayList<>();
 
@@ -80,15 +84,66 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
         load_main_chat();
         doBindService();
 
-        /* Start Conection to other device */
-        BluetoothDevice device= getIntent().getExtras().getParcelable("btdevice"); // Gets the device from BluetoothChat.class
-        String connectedDevice = device.getName(); // Get other device name so we later display on the chat
+        /* Start Connection to other device */
+        device = Objects.requireNonNull(getIntent().getExtras()).getParcelable("device");
     }
 
+    public void load_main_chat() {
+        /* Main Chat */
+        listMainChat = findViewById(R.id.list_conversation);
+        createMessage = findViewById(R.id.Enter_Message);
+        sendButton = findViewById(R.id.Send_Message);
+        adapterMainChat = new ArrayAdapter<>(context, R.layout.message_layout);
+        listMainChat.setAdapter(adapterMainChat);
+
+        sendButton.setOnClickListener(view -> {
+            String message = createMessage.getText().toString();
+
+            if (!message.isEmpty()) {
+                createMessage.setText("");
+                sendMessageToDevice(message);
+            }
+        });
+    }
+
+    /**
+     * Method to send message to the other devices
+     */
+    public void sendMessageToDevice(String message) {
+        Message msg = Message.obtain(null, MESSAGE_WRITE);
+
+        Bundle bundle = new Bundle();
+        bundle.putString("message", message);
+        bundle.putString("deviceMac", device.getAddress());
+
+        msg.setData(bundle);
+        msg.replyTo = clientChannel;
+
+        adapterMainChat.add("me: " + message);
+
+        try {
+            serviceChannel.send(msg);
+        } catch (RemoteException e) {
+            // There is nothing special we need to do if the service
+            // has crashed.
+        }
+    }
+
+    /**
+     * Send simple message to service
+     *
+     * @param flag {@link BluetoothState} flag
+     */
     void sendMessageToService(short flag) {
         sendMessageToService(flag, null);
     }
 
+    /**
+     * Send simple message to server with an object attached
+     *
+     * @param flag {@link BluetoothState} flag
+     * @param obj  Object to send
+     */
     void sendMessageToService(short flag, Object obj) {
         try {
             Message msg = Message.obtain(null, flag, obj);
@@ -96,57 +151,6 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
             serviceChannel.send(msg);
         } catch (RemoteException e) {
             e.printStackTrace();
-        }
-    }
-
-    void sendMessageToService(Handler handler,short flag, String message) {
-        try {
-            Log.i(TAG,"Handler:"+handler+"  Flag:"+flag+"  Message:"+message);
-            Message msg = Message.obtain(handler, flag, message);
-            msg.replyTo = clientChannel;
-            serviceChannel.send(msg);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    public void load_main_chat()
-    {
-        /* Main Chat */
-        listMainChat = findViewById(R.id.list_conversation);
-        createMessage = findViewById(R.id.Enter_Message);
-        sendButton = findViewById(R.id.Send_Message);
-        adapterMainChat = new ArrayAdapter<String>(context, R.layout.message_layout);
-        listMainChat.setAdapter(adapterMainChat);
-
-        sendButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                String message = createMessage.getText().toString();
-                if(!message.isEmpty())
-                {
-                    createMessage.setText("");
-                    sendMessageToDevice(message);
-                }
-            }
-        });
-    }
-
-    /**
-     * Method to send message to the other devices throwing exceptions in case its not possible.
-     */
-    public void sendMessageToDevice(String message)
-    {
-        if(BluetoothService.sendThread.size()>0)
-        {
-            try {
-                BluetoothService.sendThread.get(0).write(message); // More threads = get(i) (still need to work on that)
-                adapterMainChat.add("Me: " + message);
-            } catch(ArrayIndexOutOfBoundsException e)
-            {
-                Log.i("SendMessageMethod:","Devices were not connected thought a thread.");
-            }
         }
     }
 
@@ -174,19 +178,20 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
         }
     };
 
+    /**
+     * Handler of incoming messages from service.
+     */
     class MessageHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
             Log.i(TAG, "Message received: " + msg.what);
 
-            switch(msg.what) {
-                case REGISTER_CLIENT:
-                    break;
-
+            switch (msg.what) {
                 case MESSAGE_READ:
                     String message = msg.getData().getString("message");
-                    String device = msg.getData().getString("device");
-                    adapterMainChat.add(device+": "+message);
+                    String deviceMac = msg.getData().getString("device");
+
+                    adapterMainChat.add(device + ": " + message);
                     break;
 
                 default:
@@ -202,12 +207,36 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
         if (isBoundToService) {
             Log.i(TAG, "Client already bound to service");
         } else {
-            // Establish a connection with the service.  We use an explicit
-            // class name because there is no reason to be able to let other
-            // applications replace our component.
             Log.i(TAG, "Attempting to bind to a service");
             bindService(new Intent(BluetoothChatMessages.this, BluetoothService.class), connection, Context.BIND_AUTO_CREATE);
         }
     }
 
+    /**
+     * Unbind to service
+     */
+    void doUnbindService() {
+        if (isBoundToService) {
+            Log.i(TAG, "Unbinding");
+
+            // If we have received the service, and hence registered with
+            // it, then now is the time to unregister.
+            if (serviceChannel != null) {
+                try {
+                    Message msg = Message.obtain(null, UNREGISTER_CLIENT);
+                    msg.replyTo = clientChannel;
+                    serviceChannel.send(msg);
+                } catch (RemoteException e) {
+                    // There is nothing special we need to do if the service
+                    // has crashed.
+                }
+            }
+            // Detach our existing connection.
+            unbindService(connection);
+        } else {
+            Log.i(TAG, "No service to unbind. Client is not bound");
+        }
+
+        isBoundToService = false;
+    }
 }

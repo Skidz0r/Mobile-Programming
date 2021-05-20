@@ -1,12 +1,12 @@
 package com.example.mobilechatapp;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -14,17 +14,16 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 
-public class BluetoothChat extends AppCompatActivity implements BluetoothState{
+public class BluetoothChat extends AppCompatActivity implements BluetoothState {
     // Default android bluetooth adapter
     BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
     // Holds a list of known devices
@@ -35,14 +34,18 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
     DeviceRecyclerAdapter mAdapter;
     RecyclerView.LayoutManager mLayoutManager;
 
-    /** Buttons*/
+    /**
+     * Buttons
+     */
     Button discovery;
 
     /**
      * Messenger for communicating with service.
-     * */
+     */
     Messenger serviceChannel = null;
-    /** Flag indicating whether we have called bind on the service. */
+    /**
+     * Flag indicating whether we have called bind on the service.
+     */
     boolean isBoundToService = false;
 
     /**
@@ -50,8 +53,11 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
      */
     final Messenger clientChannel = new Messenger(new MessageHandler());
 
-    /** Tag used in Logs to identify class*/
+    /**
+     * Tag used in Logs to identify class
+     */
     final String TAG = "BluetoothChat";
+
     /**
      * Handler of incoming messages from service.
      */
@@ -60,7 +66,7 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
         public void handleMessage(Message msg) {
             Log.i(TAG, "Message received: " + msg.what);
 
-            switch(msg.what) {
+            switch (msg.what) {
                 case REGISTER_CLIENT:
                     initialSetUp();
                     break;
@@ -128,12 +134,12 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
      * Unbind to service
      */
     void doUnbindService() {
-        if ( isBoundToService ) {
+        if (isBoundToService) {
             Log.i(TAG, "Unbinding");
 
             // If we have received the service, and hence registered with
             // it, then now is the time to unregister.
-            if ( serviceChannel != null ) {
+            if (serviceChannel != null) {
                 try {
                     Message msg = Message.obtain(null, UNREGISTER_CLIENT);
                     msg.replyTo = clientChannel;
@@ -145,8 +151,7 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
             }
             // Detach our existing connection.
             unbindService(connection);
-        }
-        else {
+        } else {
             Log.i(TAG, "No service to unbind. Client is not bound");
         }
 
@@ -172,7 +177,7 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bluetooth_chat);
 
-        discovery = (Button)findViewById(R.id.DiscoverButton);
+        discovery = findViewById(R.id.DiscoverButton);
 
         doBindService();
     }
@@ -180,20 +185,17 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
     private final short REQUEST_ENABLE_DISCOVERY = 1;
 
     public void initialSetUp() {
-        discovery.setOnClickListener(new View.OnClickListener() {
-            @RequiresApi(api = Build.VERSION_CODES.M)
-            @Override
-            public void onClick(View v) {
-                if ( !btAdapter.isDiscovering() ) {
-                    Intent enableBtIntent =
-                            new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-                    startActivityForResult(enableBtIntent, REQUEST_ENABLE_DISCOVERY);
-                    sendMessageToService(BT_START_DISCOVERY);
-                }
+        discovery.setOnClickListener(v -> {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                    MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION);
 
-                else {
-                    sendMessageToService(BT_END_DISCOVERY);
-                }
+            if (!btAdapter.isDiscovering()) {
+                Intent enableBtIntent =
+                        new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+                startActivityForResult(enableBtIntent, REQUEST_ENABLE_DISCOVERY);
+            } else {
+                sendMessageToService(BT_END_DISCOVERY);
             }
         });
 
@@ -208,20 +210,13 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        switch(requestCode) {
-            case REQUEST_ENABLE_DISCOVERY:
-                if ( resultCode == RESULT_CANCELED ) {
-                    Log.d(TAG, "Discovery request failed");
-                }
-
-                else {
-                    Log.i(TAG, "Discovery request accepted");
-                    sendMessageToService(BT_START_DISCOVERY);
-                }
-                break;
-
-            default:
-                break;
+        if (requestCode == REQUEST_ENABLE_DISCOVERY) {
+            if (resultCode == RESULT_CANCELED) {
+                Log.d(TAG, "Discovery request failed");
+            } else {
+                Log.i(TAG, "Discovery request accepted");
+                sendMessageToService(BT_START_DISCOVERY);
+            }
         }
     }
 
@@ -248,15 +243,12 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState{
         mRecyclerView.setLayoutManager(mLayoutManager);
         mRecyclerView.setAdapter(mAdapter);
 
-        mAdapter.setOnItemClickListener(new DeviceRecyclerAdapter.OnItemClickListener() {
-            @Override
-            public void onItemClick(int position) {
-                Log.i(TAG, "Item clicked");
-                sendMessageToService(CONNECT, knownDevices.get(position));
-                Intent openChat = new Intent(BluetoothChat.this,BluetoothChatMessages.class);
-                openChat.putExtra("btdevice",knownDevices.get(position));
-                startActivity(openChat);
-            }
+        mAdapter.setOnItemClickListener(position -> {
+            Log.i(TAG, "Item clicked");
+            sendMessageToService(CONNECT, knownDevices.get(position));
+            Intent openChat = new Intent(BluetoothChat.this, BluetoothChatMessages.class);
+            openChat.putExtra("device", knownDevices.get(position));
+            startActivity(openChat);
         });
     }
 
