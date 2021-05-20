@@ -1,5 +1,6 @@
 package com.example.mobilechatapp;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.ComponentName;
@@ -16,6 +17,7 @@ import android.util.Log;
 import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -184,6 +186,10 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState {
 
     public void initialSetUp() {
         discovery.setOnClickListener(v -> {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                    MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION);
+
             if (!btAdapter.isDiscovering()) {
                 Intent enableBtIntent =
                         new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);

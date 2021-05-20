@@ -1,5 +1,6 @@
 package com.example.mobilechatapp;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.ComponentName;
@@ -19,6 +20,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -351,20 +353,21 @@ public class BluetoothSetting extends AppCompatActivity implements BluetoothStat
      * a action filter to the broadcast receiver, in order to track change in the scan mode.
      */
     private void btDiscoveryMechanics() {
-        btDiscovery.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if ( btAdapter.isDiscovering() )
-                    sendMessageToService(BT_END_DISCOVERY);
+        btDiscovery.setOnClickListener(v -> {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                    MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION);
 
-                else {
-                    /* Ask for user permission*/
-                    Log.i(TAG, "Ask user for discovery permission");
+            if ( btAdapter.isDiscovering() )
+                sendMessageToService(BT_END_DISCOVERY);
 
-                    Intent enableBtIntent =
-                            new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-                    startActivityForResult(enableBtIntent, REQUEST_ENABLE_DISCOVERY);
-                }
+            else {
+                /* Ask for user permission*/
+                Log.i(TAG, "Ask user for discovery permission");
+
+                Intent enableBtIntent =
+                        new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+                startActivityForResult(enableBtIntent, REQUEST_ENABLE_DISCOVERY);
             }
         });
     }
