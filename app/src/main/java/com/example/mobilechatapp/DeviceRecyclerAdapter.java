@@ -1,6 +1,5 @@
 package com.example.mobilechatapp;
 
-import android.bluetooth.BluetoothDevice;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,7 +12,7 @@ import java.util.ArrayList;
 
 public class DeviceRecyclerAdapter extends RecyclerView.Adapter<DeviceRecyclerAdapter.DeviceViewHolder> {
 
-    private ArrayList<BluetoothDevice> mArrayDevice;
+    private ArrayList<User> mArrayDevice;
     private OnItemClickListener mListener;
 
     public interface OnItemClickListener {
@@ -49,11 +48,11 @@ public class DeviceRecyclerAdapter extends RecyclerView.Adapter<DeviceRecyclerAd
         }
     }
 
-    public DeviceRecyclerAdapter(ArrayList<BluetoothDevice> arr) {
+    public DeviceRecyclerAdapter(ArrayList<User> arr) {
         mArrayDevice = arr;
     }
 
-    public void setArray(ArrayList<BluetoothDevice> arr) {
+    public void setArray(ArrayList<User> arr) {
         mArrayDevice = arr;
     }
 
@@ -65,10 +64,8 @@ public class DeviceRecyclerAdapter extends RecyclerView.Adapter<DeviceRecyclerAd
 
     @Override
     public void onBindViewHolder(@NonNull DeviceViewHolder holder, int position) {
-        BluetoothDevice currentDevice = mArrayDevice.get(position);
-
-        holder.deviceName.setText(currentDevice.getName());
-        holder.deviceAddress.setText(currentDevice.getAddress());
+        User user = mArrayDevice.get(position);
+        holder.deviceName.setText(user.getId());
     }
 
     @Override

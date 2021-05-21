@@ -19,8 +19,6 @@ public interface BluetoothState {
     static final short BT_DEVICE_BOUND = 13;
     static final short BT_DEVICE_UNBOUND = 14;
 
-    static final short BT_GET_UNBOUNDED_DEVICE = 15;
-
     static final short BT_CREATE_BOUND = 16;
 
     static final short BT_GET_DEVICES = 17;
@@ -34,4 +32,10 @@ public interface BluetoothState {
     static final short MY_PERMISSION_REQUEST_CONSTANT=23;
 
     static final short MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION = 24;
+
+    static final short GET_USER_LIST = 26;
+    static final short NEW_USER = 25;
+    static final short REMOVE_USER = 27;
+
+    static final short GET_MESSAGE_HISTORY = 28;
 }

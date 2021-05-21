@@ -10,7 +10,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -24,6 +23,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
 import java.util.UUID;
 
 public class BluetoothService extends Service implements BluetoothState {
@@ -33,13 +35,24 @@ public class BluetoothService extends Service implements BluetoothState {
     BluetoothAdapter btAdapter;
 
     /**
-     * List of unbounded devices                 
-     */
-    ArrayList<BluetoothDevice> unboundedDevices = new ArrayList<>();
-    /**
      * List of known devices.Unbounded and bounded
      */
     ArrayList<BluetoothDevice> knownDevices = new ArrayList<>();
+
+    /**
+     * List of connected users
+     */
+    ArrayList<User> userList = new ArrayList<>();
+
+    /**
+     * Small local memory
+     */
+    Map<User, LinkedList<MessageInfo>> mem = new HashMap<>();
+
+    /**
+     * Max local memory
+     */
+    private final short MAX_LOCAL_MEM = 10;
 
     /**
      * Variable to keep track of the registered clients
@@ -70,6 +83,10 @@ public class BluetoothService extends Service implements BluetoothState {
                 btAdapter.enable();
                 return;
             }
+
+            MessageInfo messageInfo;
+            User user;
+            BluetoothDevice device;
 
             switch (msg.what) {
                 case REGISTER_CLIENT:
@@ -115,7 +132,6 @@ public class BluetoothService extends Service implements BluetoothState {
                     if (btAdapter.isDiscovering()) {
                         Log.i(TAG, "Discovery mode is already running");
                     } else {
-                        unboundedDevices.clear();
                         knownDevices.clear();
                         btAdapter.startDiscovery();
                     }
@@ -135,14 +151,9 @@ public class BluetoothService extends Service implements BluetoothState {
                     sendSimpleMessage(msg.replyTo, TEST_RECEIVE_MSG, null);
                     break;
 
-                case BT_GET_UNBOUNDED_DEVICE:
-                    Log.i(TAG_REQUEST, "List of unbounded devices");
-                    sendSimpleMessage(msg.replyTo, BT_GET_UNBOUNDED_DEVICE, unboundedDevices);
-                    break;
-
                 case BT_CREATE_BOUND:
                     Log.i(TAG_REQUEST, "Bound creation");
-                    BluetoothDevice device = (BluetoothDevice) msg.obj;
+                    device = (BluetoothDevice) msg.obj;
 
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                         device.createBond();
@@ -153,6 +164,11 @@ public class BluetoothService extends Service implements BluetoothState {
                 case BT_GET_DEVICES:
                     Log.i(TAG_REQUEST, "List of known devices");
                     sendSimpleMessage(msg.replyTo, BT_GET_DEVICES, knownDevices);
+                    break;
+
+                case GET_USER_LIST:
+                    Log.i(TAG_REQUEST, "List of users");
+                    sendSimpleMessage(msg.replyTo, GET_USER_LIST, userList);
                     break;
 
                 case START_LISTENING:
@@ -166,38 +182,61 @@ public class BluetoothService extends Service implements BluetoothState {
                     break;
 
                 case CONNECT:
-                    BluetoothDevice dev = (BluetoothDevice) msg.obj;
-                    Log.i(TAG_REQUEST, "Connect with " + dev.getName());
+                    device = (BluetoothDevice) msg.obj;
+                    Log.i(TAG_REQUEST, "Connect with " + device.getName());
 
-                    if (!checkIfConnected(dev)) {
-                        ClientThread temp = new ClientThread(dev);
-                        temp.start();
-                    } else {
-                        Log.i(TAG, "Connection already exists");
-                    }
+                    tryToConnect(device);
+
                     break;
 
                 case MESSAGE_WRITE:
-                    Bundle bundle = msg.getData();
-                    String str = bundle.getString("message");
-                    String address = bundle.getString("deviceMac");
+                    messageInfo = (MessageInfo) msg.obj;
+                    user = messageInfo.getToUser();
 
-                    Log.i(TAG_REQUEST, "Send message to " + address);
+                    if (!checkIfConnected(user)) {
+                        Log.i(TAG, "Connection not found");
+                        Log.i(TAG, user.toString());
+                    } else {
+                        findConnectionThread(user).write(messageInfo);
+                    }
 
-                    ConnectionThread connectionThread = findConnectionThreadByMac(address);
+                    break;
 
-                    if (connectionThread == null)
-                        Log.i(TAG, "Connection thread not found");
+                case GET_MESSAGE_HISTORY:
+                    Log.i(TAG_REQUEST, "Message history");
+                    user = (User) msg.obj;
 
-                    else
-                        connectionThread.write(str);
+                    LinkedList<MessageInfo> memory = mem.get(user);
 
+                    sendSimpleMessage(msg.replyTo, GET_MESSAGE_HISTORY, memory);
                     break;
 
                 default:
                     Log.i(TAG, "Unprocessed flag: " + msg.what);
             }
         }
+    }
+
+    void autoConnect() {
+        for (BluetoothDevice device : knownDevices) {
+            tryToConnect(device);
+        }
+    }
+
+    void tryToConnect(BluetoothDevice device) {
+        if (!checkIfConnected(device)) {
+            ClientThread temp = new ClientThread(device);
+            temp.start();
+        } else {
+            Log.i(TAG, "Connection with " + device.getName() + " already exists");
+        }
+
+    }
+
+    boolean checkIfConnected(User user) {
+        ConnectionThread connectionThread = findConnectionThread(user);
+
+        return connectionThread != null;
     }
 
     /**
@@ -242,69 +281,6 @@ public class BluetoothService extends Service implements BluetoothState {
     }
 
     /**
-     * Inform of a new message received.
-     *
-     * @param destiny Client to inform
-     * @param str     Contents of the message
-     * @param device  {@link BluetoothDevice} Source of the message
-     */
-    void informOfNewMessage(Messenger destiny, String str, BluetoothDevice device) {
-        Bundle bundle = new Bundle();
-        bundle.putString("message", str);
-        bundle.putString("device", device.getName());
-
-        Message msg = Message.obtain(null, MESSAGE_READ);
-        msg.setData(bundle);
-
-        try {
-            destiny.send(msg);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Inform all the clients of a received message
-     *
-     * @param str    contents of the message
-     * @param device {@link BluetoothDevice} source of the message
-     */
-    void informAllOfNewMessage(String str, BluetoothDevice device) {
-        for (Messenger client : clients)
-            informOfNewMessage(client, str, device);
-    }
-
-    /**
-     * Send message to a specific registered client
-     *
-     * @param destiny    {@link Messenger} client to send message
-     * @param response   response to send (In this case MESSAGE_READ which is 19).
-     * @param message    The text message
-     * @param deviceName What device sent us the text message {@param message}
-     */
-    void sendMessageToRead(Messenger destiny, short response, String message, String deviceName) {
-        Message msg = (message == null) ? Message.obtain(null, response) : Message.obtain(null, response, message);
-        Bundle bundle = new Bundle();
-        bundle.putString("message", message);
-        bundle.putString("device", deviceName);
-        msg.setData(bundle);
-        try {
-            destiny.send(msg);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Send message with a text message associated to all registered clients
-     */
-    void sendMessageToReadShort(short response, String message, String deviceName) {
-        for (Messenger client : clients)
-            sendMessageToRead(client, response, message, deviceName);
-    }
-
-
-    /**
      * Target we publish for clients to send messages to handleMessage
      */
     final Messenger messenger = new Messenger(new MessageHandler());
@@ -333,6 +309,9 @@ public class BluetoothService extends Service implements BluetoothState {
     @Override
     public void onDestroy() {
         Log.i(TAG, "Service destruction");
+
+        for (ConnectionThread thread : connectionThreads)
+            thread.terminateConnection();
 
         unregisterReceiver(receiver);
     }
@@ -367,6 +346,8 @@ public class BluetoothService extends Service implements BluetoothState {
                 if (knownDevices.size() == 0)
                     Log.i(TAG, "No devices were found.");
 
+                autoConnect();
+
                 sendAllSimpleMessage(BT_END_DISCOVERY, null);
             }
 
@@ -398,12 +379,6 @@ public class BluetoothService extends Service implements BluetoothState {
                 Log.i(TAG, "Device found " + device.getName());
 
                 if (!knownDevices.contains(device)) {
-                    if (device.getBondState() == BluetoothDevice.BOND_NONE) {
-                        unboundedDevices.add(device);
-
-                        sendAllSimpleMessage(BT_UNBOUND_DEVICE_FOUND, device);
-                    }
-
                     knownDevices.add(device);
 
                     sendAllSimpleMessage(BT_DEVICE_FOUND, device);
@@ -421,7 +396,6 @@ public class BluetoothService extends Service implements BluetoothState {
                     switch (state) {
                         case BluetoothDevice.BOND_BONDED:
                             Log.i(TAG, "Device bonded");
-                            unboundedDevices.remove(device);
                             sendAllSimpleMessage(BT_DEVICE_BOUND, device);
                             break;
 
@@ -447,10 +421,6 @@ public class BluetoothService extends Service implements BluetoothState {
      * Server thread used to listen to incoming connection request
      */
     private ServerThread serverThread = null;
-    /**
-     * Client thread used to connect to other devices
-     */
-    private ClientThread clientThread = null;
 
     /**
      * List of connections
@@ -497,17 +467,6 @@ public class BluetoothService extends Service implements BluetoothState {
 
             Log.i(TAG0, "Server thread end");
         }
-
-        public void cancel() {
-            try {
-                myServerSocket.close();
-                myServerSocket = null;
-            } catch (IOException e) {
-                Log.e(TAG0, "Failed in closing server socket", e);
-            }
-
-            Log.i(TAG0, "Closing server thread");
-        }
     }
 
     /**
@@ -540,7 +499,7 @@ public class BluetoothService extends Service implements BluetoothState {
 
                 Log.i(TAG1, "Connection attempt succeeded");
             } catch (IOException e) {
-                Log.e(TAG1, "Connection attempt failed", e);
+                Log.e(TAG1, "Connection attempt failed");
                 this.cancel();
             }
         }
@@ -560,38 +519,43 @@ public class BluetoothService extends Service implements BluetoothState {
      * @param mySocket {@link BluetoothSocket} connection socket
      */
     private void createConnectionThread(BluetoothSocket mySocket) {
-        ConnectionThread connectionThread = new ConnectionThread(mySocket, mySocket.getRemoteDevice());
+        if (checkIfConnected(mySocket.getRemoteDevice())) {
+            return;
+        }
 
-        connectionThreads.add(connectionThread);
+        BluetoothDevice device = mySocket.getRemoteDevice();
+        User user = new User(device.getName(), device);
 
-        connectionThread.start();
+        ConnectionThread thread = new ConnectionThread(mySocket, user);
+        connectionThreads.add(thread);
+
+        thread.start();
     }
 
     /**
      * Given a {@link BluetoothDevice}, this method will return the corresponding connection thread
      *
-     * @param device {@link BluetoothDevice} identifier
      * @return null if connection thread is not found, otherwise the {@link ConnectionThread}
      */
-    private ConnectionThread findConnectionThread(BluetoothDevice device) {
-        return findConnectionThreadByMac(device.getAddress());
-    }
-
-    /**
-     * Find connectionThread by device mac address
-     *
-     * @param macAddress address of {@link BluetoothDevice}
-     * @return Connection Thread that has the corresponding mac address, otherwise null
-     */
-    private ConnectionThread findConnectionThreadByMac(String macAddress) {
-        for (ConnectionThread connectionThread : connectionThreads) {
-            String otherMacAddress = connectionThread.getDevice().getAddress();
-
-            if (connectionThread.getDevice().getAddress().equals(macAddress))
-                return connectionThread;
+    private ConnectionThread findConnectionThread(User user) {
+        for (ConnectionThread thread : connectionThreads) {
+            if (thread.getUser().equals(user))
+                return thread;
         }
 
         return null;
+    }
+
+    private ConnectionThread findConnectionThread(BluetoothDevice device) {
+        for (ConnectionThread thread : connectionThreads) {
+            if (thread.getUser().getDevice().equals(device))
+                return thread;
+        }
+
+        return null;
+    }
+
+    private void addToMemory(MessageInfo messageInfo) {
     }
 
     /**
@@ -600,32 +564,42 @@ public class BluetoothService extends Service implements BluetoothState {
      * Warning in the current implementation, device is used as unique identifier between different
      * connection threads
      */
-    private class ConnectionThread extends Thread {
+    public class ConnectionThread extends Thread {
         private final BluetoothSocket socket;
 
-        private final BluetoothDevice device;
+        private final User user;
 
         private final Listen listen;
         private final Send send;
 
-        ConnectionThread(BluetoothSocket socket, BluetoothDevice device) {
+        ConnectionThread(BluetoothSocket socket, User user) {
             Log.i(TAG2, "Creating connection thread");
 
             this.socket = socket;
-            this.device = device;
+            this.user = user;
 
-            listen = new Listen(socket, device);
+            listen = new Listen(socket);
             listen.start();
 
-            send = new Send(socket, device);
+            send = new Send(socket);
             send.start();
+
+            if (!userList.contains(user)) {
+                userList.add(user);
+                sendAllSimpleMessage(NEW_USER, user);
+                mem.put(user, new LinkedList<>());
+            }
         }
 
-        void write(String message) {
-            if (send != null) {
-                send.write(message);
-            } else
-                terminateConnection();
+        void write(MessageInfo messageInfo) {
+            if (send == null) {
+                Log.i(TAG2, "Send thread is dead");
+            } else if (messageInfo == null) {
+                Log.i(TAG2, "messageInfo is null");
+            } else {
+                addToMemory(messageInfo);
+                send.write(messageInfo.getContent());
+            }
         }
 
         void terminateConnection() {
@@ -640,11 +614,20 @@ public class BluetoothService extends Service implements BluetoothState {
             if (connectionThreads != null)
                 connectionThreads.remove(this);
 
+            try {
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            userList.remove(user);
+            sendAllSimpleMessage(REMOVE_USER, null);
+
             this.interrupt();
         }
 
-        public BluetoothDevice getDevice() {
-            return device;
+        public User getUser() {
+            return user;
         }
 
         public class Listen extends Thread {
@@ -652,7 +635,7 @@ public class BluetoothService extends Service implements BluetoothState {
             private byte[] myBuffer;
             private static final int BUFFER_SIZE = 1024;
 
-            private Listen(BluetoothSocket socket, BluetoothDevice device) {
+            private Listen(BluetoothSocket socket) {
                 Log.i(TAG2, "Creating listening thread");
 
                 InputStream tempIn = null;
@@ -674,10 +657,14 @@ public class BluetoothService extends Service implements BluetoothState {
                         myIn.read(myBuffer);
                         String str = new String(myBuffer);
 
-                        Log.i(TAG, "New message from " + device.getAddress());
+                        Log.i(TAG, "New message from " + user);
+
+                        MessageInfo messageInfo = new MessageInfo(user, null, str);
+
+                        addToMemory(messageInfo);
 
                         // Device in Connection Thread
-                        informAllOfNewMessage(str, device);
+                        sendAllSimpleMessage(MESSAGE_READ, new MessageInfo(user, null, str));
                     } catch (IOException e) {
                         Log.e(TAG2, "Input stream was disconnected");
                         terminateConnection();
@@ -690,7 +677,7 @@ public class BluetoothService extends Service implements BluetoothState {
         private class Send extends Thread {
             private final OutputStream myOut;
 
-            private Send(BluetoothSocket mySocket, BluetoothDevice connectedDevice) {
+            private Send(BluetoothSocket mySocket) {
                 Log.i(TAG2, "Creating writing thread");
 
                 OutputStream tempOut = null;

@@ -2,7 +2,6 @@ package com.example.mobilechatapp;
 
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -22,12 +21,14 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 
 public class BluetoothChat extends AppCompatActivity implements BluetoothState {
     // Default android bluetooth adapter
     BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
-    // Holds a list of known devices
-    ArrayList<BluetoothDevice> knownDevices = new ArrayList<>();
+
+    // Holds a list of known users
+    ArrayList<User> userList = new ArrayList<>();
 
     /* Recycler stuff */
     RecyclerView mRecyclerView;
@@ -66,24 +67,40 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState {
         public void handleMessage(Message msg) {
             Log.i(TAG, "Message received: " + msg.what);
 
+            User user;
+
             switch (msg.what) {
                 case REGISTER_CLIENT:
                     initialSetUp();
                     break;
 
-                case BT_GET_DEVICES:
-                    knownDevices = (ArrayList<BluetoothDevice>) msg.obj;
-                    mAdapter.setArray(knownDevices);
+                case GET_USER_LIST:
+                    userList = (ArrayList<User>) msg.obj;
+                    mAdapter.setArray(userList);
                     mAdapter.notifyDataSetChanged();
                     break;
 
-                case BT_END_DISCOVERY:
-                    sendMessageToService(BT_GET_DEVICES);
+                case NEW_USER:
+                    user = (User) msg.obj;
+                    userList.add(user);
+                    mAdapter.setArray(userList);
+                    mAdapter.notifyDataSetChanged();
                     break;
 
-                case BT_START_DISCOVERY:
-                    resetRecyclerContent();
+                case REMOVE_USER:
+                    sendMessageToService(GET_USER_LIST);
                     break;
+
+                case GET_MESSAGE_HISTORY:
+                    LinkedList<MessageInfo> list = (LinkedList<MessageInfo>) msg.obj;
+
+                    if ( list == null ) {
+                        Log.i(TAG, "No message history");
+                    }
+
+                    else {
+
+                    }
 
                 default:
                     break;
@@ -238,16 +255,15 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState {
         mRecyclerView.setHasFixedSize(true);
         mLayoutManager = new LinearLayoutManager(this);
 
-        mAdapter = new DeviceRecyclerAdapter(knownDevices);
+        mAdapter = new DeviceRecyclerAdapter(userList);
 
         mRecyclerView.setLayoutManager(mLayoutManager);
         mRecyclerView.setAdapter(mAdapter);
 
         mAdapter.setOnItemClickListener(position -> {
             Log.i(TAG, "Item clicked");
-            sendMessageToService(CONNECT, knownDevices.get(position));
             Intent openChat = new Intent(BluetoothChat.this, BluetoothChatMessages.class);
-            openChat.putExtra("device", knownDevices.get(position));
+            openChat.putExtra("device", userList.get(position).getDevice());
             startActivity(openChat);
         });
     }
@@ -257,8 +273,8 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState {
      * old devices may have gone out of discovery.
      */
     private void resetRecyclerContent() {
-        knownDevices = new ArrayList<>();
-        mAdapter.setArray(knownDevices);
+        userList = new ArrayList<>();
+        mAdapter.setArray(userList);
         mAdapter.notifyDataSetChanged();
     }
 }
