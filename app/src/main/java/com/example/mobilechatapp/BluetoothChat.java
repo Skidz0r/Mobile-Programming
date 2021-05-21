@@ -76,6 +76,7 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState {
 
                 case GET_USER_LIST:
                     userList = (ArrayList<User>) msg.obj;
+                    Log.i(TAG, "LISt " + userList);
                     mAdapter.setArray(userList);
                     mAdapter.notifyDataSetChanged();
                     break;
@@ -263,7 +264,7 @@ public class BluetoothChat extends AppCompatActivity implements BluetoothState {
         mAdapter.setOnItemClickListener(position -> {
             Log.i(TAG, "Item clicked");
             Intent openChat = new Intent(BluetoothChat.this, BluetoothChatMessages.class);
-            openChat.putExtra("device", userList.get(position).getDevice());
+            openChat.putExtra("userName", userList.get(position).getId());
             startActivity(openChat);
         });
     }

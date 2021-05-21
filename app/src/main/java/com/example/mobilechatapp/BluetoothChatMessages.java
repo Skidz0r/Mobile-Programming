@@ -23,7 +23,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.Objects;
 import java.util.UUID;
 
 public class BluetoothChatMessages extends AppCompatActivity implements BluetoothState {
@@ -71,6 +70,9 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
      */
     private final static UUID MY_UUID = UUID.fromString("b885d9a0-b9a7-4a2a-b05d-b3aae45c9192");
 
+    String userName;
+    User user;
+
     final String TAG = "BluetoothChatMessages";
 
     @Override
@@ -86,7 +88,8 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
         doBindService();
 
         /* Start Connection to other device */
-        device = Objects.requireNonNull(getIntent().getExtras()).getParcelable("device");
+        userName = getIntent().getStringExtra("userName");
+        Log.i(TAG, "--> " + userName);
     }
 
     public void load_main_chat() {
@@ -175,12 +178,11 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
      * Method to send message to the other devices
      */
     public void sendMessageToDevice(String message) {
-        if (device == null) {
-            Log.i(TAG, "Device is null");
+        if ( user == null ) {
+            Log.i(TAG, "User is null. Message ignored");
             return;
         }
 
-        User user = new User(device.getName(), device);
         MessageInfo messageInfo = new MessageInfo(null, user, message);
 
         sendMessageToService(MESSAGE_WRITE, messageInfo);
@@ -234,7 +236,13 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
                     break;
 
                 case REGISTER_CLIENT:
-                    sendMessageToService(GET_MESSAGE_HISTORY);
+                    sendMessageToService(GET_USER, userName);
+                    break;
+
+                case GET_USER:
+                    user = (User) msg.obj;
+                    Log.i(TAG, "User is " + user);
+                    sendMessageToService(GET_MESSAGE_HISTORY, user);
                     break;
 
                 default:

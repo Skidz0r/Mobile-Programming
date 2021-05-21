@@ -211,6 +211,17 @@ public class BluetoothService extends Service implements BluetoothState {
                     sendSimpleMessage(msg.replyTo, GET_MESSAGE_HISTORY, memory);
                     break;
 
+                case GET_USER:
+                    String name = (String) msg.obj;
+
+                    Log.i(TAG_REQUEST, "Get user with id: " + name);
+
+                    for (User u : userList)
+                        if (u.getId().equals(name))
+                            sendSimpleMessage(msg.replyTo, GET_USER, u);
+
+                    break;
+
                 default:
                     Log.i(TAG, "Unprocessed flag: " + msg.what);
             }
@@ -556,6 +567,33 @@ public class BluetoothService extends Service implements BluetoothState {
     }
 
     private void addToMemory(MessageInfo messageInfo) {
+        User user;
+
+        if (messageInfo.getFromUser() == null) {
+            user = messageInfo.getToUser();
+        } else {
+            user = messageInfo.getFromUser();
+        }
+
+        Log.i(TAG, "Memory: " + mem.toString());
+
+        LinkedList<MessageInfo> list = mem.get(user);
+
+        if (list == null) {
+            Log.i(TAG, "List is null");
+
+            list = new LinkedList<>();
+            mem.put(user, list);
+        } else {
+            Log.i(TAG, "List is not null " + list);
+        }
+
+        while ( list.size() >= MAX_LOCAL_MEM )
+            list.removeFirst();
+
+        list.addLast(messageInfo);
+
+        Log.i(TAG, "list2 :" + list == null ? "Empty" : list.toString());
     }
 
     /**

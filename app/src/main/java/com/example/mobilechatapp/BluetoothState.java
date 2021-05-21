@@ -38,4 +38,6 @@ public interface BluetoothState {
     static final short REMOVE_USER = 27;
 
     static final short GET_MESSAGE_HISTORY = 28;
+
+    static final short GET_USER = 29;
 }
