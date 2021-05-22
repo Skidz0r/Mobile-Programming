@@ -33,7 +33,7 @@ public class BluetoothSetting extends AppCompatActivity implements BluetoothStat
 
     /** Recycler stuff */
     RecyclerView mRecyclerView;
-    DeviceRecyclerAdapter mAdapter;
+    DeviceRecyclerAdapterSettingActivity mAdapter;
     RecyclerView.LayoutManager mLayoutManager;
 
     /** Image icon reference for bluetooth state*/
@@ -112,22 +112,18 @@ public class BluetoothSetting extends AppCompatActivity implements BluetoothStat
                     break;
 
                 case BT_END_DISCOVERY:
-                    sendMessageToService(BT_GET_UNBOUNDED_DEVICE);
+                    sendMessageToService(BT_GET_DEVICES);
                     discoveryOff();
                     break;
 
-                case BT_UNBOUND_DEVICE_FOUND:
+                case BT_DEVICE_FOUND:
                     // Add device to array
                     btArrayDevice.add((BluetoothDevice) msg.obj);
                     // Notify change
                     mAdapter.notifyDataSetChanged();
                     break;
 
-                case BT_DEVICE_BOUND:
-                    sendMessageToService(BT_GET_UNBOUNDED_DEVICE);
-                    break;
-
-                case BT_GET_UNBOUNDED_DEVICE:
+                case BT_GET_DEVICES:
                     btArrayDevice = (ArrayList<BluetoothDevice>) msg.obj;
                     mAdapter.setArray(btArrayDevice);
                     mAdapter.notifyDataSetChanged();
@@ -319,19 +315,16 @@ public class BluetoothSetting extends AppCompatActivity implements BluetoothStat
         mRecyclerView = findViewById(R.id.deviceListView);
         mRecyclerView.setHasFixedSize(true);
         mLayoutManager = new LinearLayoutManager(this);
-        mAdapter = new DeviceRecyclerAdapter(btArrayDevice);
+        mAdapter = new DeviceRecyclerAdapterSettingActivity(btArrayDevice);
 
-        sendMessageToService(BT_GET_UNBOUNDED_DEVICE);
+        sendMessageToService(BT_GET_DEVICES);
 
         mRecyclerView.setLayoutManager(mLayoutManager);
         mRecyclerView.setAdapter(mAdapter);
 
-        mAdapter.setOnItemClickListener(new DeviceRecyclerAdapter.OnItemClickListener() {
-            @Override
-            public void onItemClick(int position) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                    sendMessageToService(BT_CREATE_BOUND, btArrayDevice.get(position));
-                }
+        mAdapter.setOnItemClickListener(position -> {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                sendMessageToService(BT_CREATE_BOUND, btArrayDevice.get(position));
             }
         });
     }
