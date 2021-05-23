@@ -114,7 +114,7 @@
                 android:textColor="@color/white"
                 android:background="@color/cyan_blue"
                 android:layout_centerHorizontal="true"
-                android:layout_marginTop="500dp"/>
+                android:layout_marginTop="400dp"/>
 
 
         </RelativeLayout>
