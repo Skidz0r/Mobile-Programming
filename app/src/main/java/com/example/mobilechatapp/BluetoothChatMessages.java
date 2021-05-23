@@ -17,12 +17,13 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
+import java.util.Objects;
 import java.util.UUID;
 
 public class BluetoothChatMessages extends AppCompatActivity implements BluetoothState {
@@ -33,17 +34,13 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
     // Connected device
     private BluetoothDevice device;
 
-    /* Recycler stuff */
-    RecyclerView mRecyclerView;
-    DeviceRecyclerAdapter mAdapter;
-    RecyclerView.LayoutManager mLayoutManager;
-
     /* MainChat Defines */
     private Context context;
     private ListView listMainChat;
     private EditText createMessage;
     private Button sendButton;
     private ArrayAdapter<String> adapterMainChat;
+    private TextView username;
 
     /**
      * Messenger for communicating with service.
@@ -70,10 +67,7 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
      */
     private final static UUID MY_UUID = UUID.fromString("b885d9a0-b9a7-4a2a-b05d-b3aae45c9192");
 
-    String userName;
-    User user;
-
-    final String TAG = "BluetoothChatMessages";
+    final String TAG = "BluetoothChat";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,8 +82,8 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
         doBindService();
 
         /* Start Connection to other device */
-        userName = getIntent().getStringExtra("userName");
-        Log.i(TAG, "--> " + userName);
+        device = Objects.requireNonNull(getIntent().getExtras()).getParcelable("device");
+        username.setText(device.getName());
     }
 
     public void load_main_chat() {
@@ -97,6 +91,7 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
         listMainChat = findViewById(R.id.list_conversation);
         createMessage = findViewById(R.id.Enter_Message);
         sendButton = findViewById(R.id.Send_Message);
+        username = findViewById(R.id.Username);
         adapterMainChat = new ArrayAdapter<>(context, R.layout.message_layout);
         listMainChat.setAdapter(adapterMainChat);
 
@@ -108,6 +103,54 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
                 sendMessageToDevice(message);
             }
         });
+    }
+
+    /**
+     * Method to send message to the other devices
+     */
+    public void sendMessageToDevice(String message) {
+        Message msg = Message.obtain(null, MESSAGE_WRITE);
+
+        Bundle bundle = new Bundle();
+        bundle.putString("message", message);
+        bundle.putString("deviceMac", device.getAddress());
+
+        msg.setData(bundle);
+        msg.replyTo = clientChannel;
+
+        adapterMainChat.add("me: " + message);
+
+        try {
+            serviceChannel.send(msg);
+        } catch (RemoteException e) {
+            // There is nothing special we need to do if the service
+            // has crashed.
+        }
+    }
+
+    /**
+     * Send simple message to service
+     *
+     * @param flag {@link BluetoothState} flag
+     */
+    void sendMessageToService(short flag) {
+        sendMessageToService(flag, null);
+    }
+
+    /**
+     * Send simple message to server with an object attached
+     *
+     * @param flag {@link BluetoothState} flag
+     * @param obj  Object to send
+     */
+    void sendMessageToService(short flag, Object obj) {
+        try {
+            Message msg = Message.obtain(null, flag, obj);
+            msg.replyTo = clientChannel;
+            serviceChannel.send(msg);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -133,6 +176,28 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
             Log.i(TAG, "Disconnected from service");
         }
     };
+
+    /**
+     * Handler of incoming messages from service.
+     */
+    class MessageHandler extends Handler {
+        @Override
+        public void handleMessage(Message msg) {
+            Log.i(TAG, "Message received: " + msg.what);
+
+            switch (msg.what) {
+                case MESSAGE_READ:
+                    String message = msg.getData().getString("message");
+                    String deviceMac = msg.getData().getString("device");
+
+                    adapterMainChat.add(device.getName() + ": " + message);
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    }
 
     /**
      * Bind to service
@@ -173,94 +238,4 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
 
         isBoundToService = false;
     }
-
-    /**
-     * Method to send message to the other devices
-     */
-    public void sendMessageToDevice(String message) {
-        if ( user == null ) {
-            Log.i(TAG, "User is null. Message ignored");
-            return;
-        }
-
-        MessageInfo messageInfo = new MessageInfo(null, user, message);
-
-        sendMessageToService(MESSAGE_WRITE, messageInfo);
-        adapterMainChat.add("me: " + message);
-    }
-
-    /**
-     * Send simple message to service
-     *
-     * @param flag {@link BluetoothState} flag
-     */
-    void sendMessageToService(short flag) {
-        sendMessageToService(flag, null);
-    }
-
-    /**
-     * Send simple message to server with an object attached
-     *
-     * @param flag {@link BluetoothState} flag
-     * @param obj  Object to send
-     */
-    void sendMessageToService(short flag, Object obj) {
-        try {
-            Message msg = Message.obtain(null, flag, obj);
-            msg.replyTo = clientChannel;
-            serviceChannel.send(msg);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Handler of incoming messages from service.
-     */
-    class MessageHandler extends Handler {
-        @Override
-        public void handleMessage(Message msg) {
-            Log.i(TAG, "Message received: " + msg.what);
-
-            MessageInfo messageInfo;
-
-            switch (msg.what) {
-                case MESSAGE_READ:
-                    messageInfo = (MessageInfo) msg.obj;
-
-                    adapterMainChat.add(messageInfo.getFromUser() + "\n" + messageInfo.getContent());
-                    break;
-
-                case GET_MESSAGE_HISTORY:
-                    resetRecyclerContent((LinkedList<MessageInfo>) msg.obj);
-                    break;
-
-                case REGISTER_CLIENT:
-                    sendMessageToService(GET_USER, userName);
-                    break;
-
-                case GET_USER:
-                    user = (User) msg.obj;
-                    Log.i(TAG, "User is " + user);
-                    sendMessageToService(GET_MESSAGE_HISTORY, user);
-                    break;
-
-                default:
-                    break;
-            }
-        }
-    }
-
-    private void resetRecyclerContent(LinkedList<MessageInfo> list) {
-        if (list == null)
-            return;
-
-        adapterMainChat.clear();
-
-        for (MessageInfo info : list) {
-            String who = info.getFromUser() == null ? "me: " : info.getFromUser().toString();
-            adapterMainChat.add(who + info.getContent());
-        }
-    }
-
 }

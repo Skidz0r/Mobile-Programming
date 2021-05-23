@@ -1,5 +1,7 @@
 package com.example.mobilechatapp;
 
+import com.example.mobilechatapp.Model.User;
+
 public class MessageInfo {
     private final User fromUser;
     private final User toUser;

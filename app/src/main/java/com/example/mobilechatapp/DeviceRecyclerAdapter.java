@@ -1,5 +1,6 @@
 package com.example.mobilechatapp;
 
+import android.bluetooth.BluetoothDevice;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,7 +13,7 @@ import java.util.ArrayList;
 
 public class DeviceRecyclerAdapter extends RecyclerView.Adapter<DeviceRecyclerAdapter.DeviceViewHolder> {
 
-    private ArrayList<User> mArrayDevice;
+    private ArrayList<BluetoothDevice> mArrayDevice;
     private OnItemClickListener mListener;
 
     public interface OnItemClickListener {
@@ -20,7 +21,7 @@ public class DeviceRecyclerAdapter extends RecyclerView.Adapter<DeviceRecyclerAd
     }
 
     public void setOnItemClickListener(OnItemClickListener listener) {
-         mListener = listener;
+        mListener = listener;
     }
 
     public static class DeviceViewHolder extends RecyclerView.ViewHolder {
@@ -31,7 +32,7 @@ public class DeviceRecyclerAdapter extends RecyclerView.Adapter<DeviceRecyclerAd
             super(itemView);
 
             deviceName = itemView.findViewById(R.id.textView1);
-            deviceAddress = itemView.findViewById(R.id.textView2);
+            //deviceAddress = itemView.findViewById(R.id.textView2);
 
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -48,11 +49,11 @@ public class DeviceRecyclerAdapter extends RecyclerView.Adapter<DeviceRecyclerAd
         }
     }
 
-    public DeviceRecyclerAdapter(ArrayList<User> arr) {
+    public DeviceRecyclerAdapter(ArrayList<BluetoothDevice> arr) {
         mArrayDevice = arr;
     }
 
-    public void setArray(ArrayList<User> arr) {
+    public void setArray(ArrayList<BluetoothDevice> arr) {
         mArrayDevice = arr;
     }
 
@@ -64,8 +65,10 @@ public class DeviceRecyclerAdapter extends RecyclerView.Adapter<DeviceRecyclerAd
 
     @Override
     public void onBindViewHolder(@NonNull DeviceViewHolder holder, int position) {
-        User user = mArrayDevice.get(position);
-        holder.deviceName.setText(user.getId());
+        BluetoothDevice currentDevice = mArrayDevice.get(position);
+
+        holder.deviceName.setText(currentDevice.getName());
+        // holder.deviceAddress.setText(currentDevice.getAddress()); Adress is not needed.
     }
 
     @Override

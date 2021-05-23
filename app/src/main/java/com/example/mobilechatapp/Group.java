@@ -1,5 +1,7 @@
 package com.example.mobilechatapp;
 
+import com.example.mobilechatapp.Model.User;
+
 import java.util.LinkedList;
 
 public class Group{

@@ -7,18 +7,22 @@ import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.firebase.FirebaseApp;
+
 public class MainActivity extends AppCompatActivity{
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             setContentView(R.layout.activity_main);
-
             Button btConnect = (Button)findViewById(R.id.bluetoothSettingsButton);
             Button profile = (Button)findViewById(R.id.profileButton);
             Button chat = (Button)findViewById(R.id.chatButton);
+            Button register = findViewById(R.id.registerButton);
+            Button login = findViewById(R.id.loginButton);
 
-            btConnect.setOnClickListener(new View.OnClickListener()
+
+        btConnect.setOnClickListener(new View.OnClickListener()
             {
                 @Override
                 public void onClick(View v)
@@ -43,5 +47,21 @@ public class MainActivity extends AppCompatActivity{
                     startActivity(chatIntent);
                 }
             });
+
+        register.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent registerIntent = new Intent(getApplicationContext(), RegisterActivity.class );
+                startActivity(registerIntent);
+            }
+        });
+
+        login.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent loginIntent = new Intent(getApplicationContext(), LoginActivity.class );
+                startActivity(loginIntent);
+            }
+        });
     }
 }
