@@ -1,6 +1,5 @@
 package com.example.mobilechatapp;
 
-import android.bluetooth.BluetoothDevice;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,11 +8,13 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.mobilechatapp.Model.UserChat;
+
 import java.util.ArrayList;
 
 public class DeviceRecyclerAdapter extends RecyclerView.Adapter<DeviceRecyclerAdapter.DeviceViewHolder> {
 
-    private ArrayList<BluetoothDevice> mArrayDevice;
+    private ArrayList<UserChat> mArrayDevice;
     private OnItemClickListener mListener;
 
     public interface OnItemClickListener {
@@ -49,11 +50,11 @@ public class DeviceRecyclerAdapter extends RecyclerView.Adapter<DeviceRecyclerAd
         }
     }
 
-    public DeviceRecyclerAdapter(ArrayList<BluetoothDevice> arr) {
+    public DeviceRecyclerAdapter(ArrayList<UserChat> arr) {
         mArrayDevice = arr;
     }
 
-    public void setArray(ArrayList<BluetoothDevice> arr) {
+    public void setArray(ArrayList<UserChat> arr) {
         mArrayDevice = arr;
     }
 
@@ -65,9 +66,9 @@ public class DeviceRecyclerAdapter extends RecyclerView.Adapter<DeviceRecyclerAd
 
     @Override
     public void onBindViewHolder(@NonNull DeviceViewHolder holder, int position) {
-        BluetoothDevice currentDevice = mArrayDevice.get(position);
+        UserChat userChat = mArrayDevice.get(position);
 
-        holder.deviceName.setText(currentDevice.getName());
+        holder.deviceName.setText(userChat.getId());
         // holder.deviceAddress.setText(currentDevice.getAddress()); Adress is not needed.
     }
 

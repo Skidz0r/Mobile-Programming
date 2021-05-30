@@ -22,6 +22,10 @@ public class BluetoothChat extends AppCompatActivity {
     // Holds a list of paired devices
     ArrayList<BluetoothDevice> btArrayDevice;
 
+    /**
+     * List of chat users
+     */
+
     /* Recycler stuff */
     RecyclerView mRecyclerView;
     DeviceRecyclerAdapter mAdapter;

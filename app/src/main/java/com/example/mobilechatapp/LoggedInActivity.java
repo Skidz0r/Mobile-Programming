@@ -2,7 +2,6 @@ package com.example.mobilechatapp;
 
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -10,7 +9,6 @@ import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
@@ -28,8 +26,6 @@ import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentPagerAdapter;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.ViewPager;
 
 import com.bumptech.glide.Glide;
@@ -37,6 +33,7 @@ import com.example.mobilechatapp.Fragments.ChatsFragment;
 import com.example.mobilechatapp.Fragments.ProfileFragment;
 import com.example.mobilechatapp.Fragments.UsersFragment;
 import com.example.mobilechatapp.Model.User;
+import com.example.mobilechatapp.Model.UserChat;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -61,13 +58,11 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
 
     // Default android bluetooth adapter
     BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
-    // Holds a list of known devices
-    ArrayList<BluetoothDevice> knownDevices = new ArrayList<>();
 
-    /* Recycler stuff */
-    RecyclerView mRecyclerView;
-    DeviceRecyclerAdapter mAdapter;
-    RecyclerView.LayoutManager mLayoutManager;
+    /**
+     * List of devices that we are connected to
+     */
+    ArrayList<UserChat> userChatList = new ArrayList<>();
 
     /**
      * Buttons
@@ -107,18 +102,14 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
                     initialSetUp();
                     break;
 
-                case BT_GET_DEVICES:
-                    knownDevices = (ArrayList<BluetoothDevice>) msg.obj;
-                    mAdapter.setArray(knownDevices);
-                    mAdapter.notifyDataSetChanged();
+                case NEW_USER:
+                    sendMessageToService(GET_USER_LIST);
                     break;
 
-                case BT_END_DISCOVERY:
-                    sendMessageToService(BT_GET_DEVICES);
-                    break;
-
-                case BT_START_DISCOVERY:
-                    resetRecyclerContent();
+                case GET_USER_LIST:
+                    FragmentManager fm = getSupportFragmentManager();
+                    ChatsFragment chatsFragment = (ChatsFragment) fm.findFragmentByTag("Chats");
+                    chatsFragment.updateUserChatList(userChatList);
                     break;
 
                 default:
@@ -166,10 +157,21 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
         }
     }
 
+    /**
+     * Send message to service with a identifier flag
+     *
+     * @param flag identifier
+     */
     void sendMessageToService(short flag) {
         sendMessageToService(flag, null);
     }
 
+    /**
+     * Send message to service with a identifier flag and an object
+     *
+     * @param flag identifier
+     * @param obj  object
+     */
     void sendMessageToService(short flag, Object obj) {
         try {
             Message msg = Message.obtain(null, flag, obj);
@@ -186,7 +188,7 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_logged_in);
 
-        Toolbar toolbar= findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setTitle("");
 
@@ -202,24 +204,19 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
 
         reference.addValueEventListener(new ValueEventListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot)
-            {
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
                 User user = snapshot.getValue(User.class);
                 username.setText(userDirectory);
                 String imageUrl = user.getImageUrl();
-                if(imageUrl.equals("default"))
-                {
+                if (imageUrl.equals("default")) {
                     profilePicture.setImageResource(R.mipmap.ic_launcher);
-                }
-                else
-                {
+                } else {
                     Glide.with(LoggedInActivity.this).load(imageUrl).into(profilePicture);
                 }
             }
 
             @Override
-            public void onCancelled(@NonNull DatabaseError error)
-            {
+            public void onCancelled(@NonNull DatabaseError error) {
 
             }
         });
@@ -227,18 +224,19 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
         /* Pass username to Profile fragment */
         Fragment profileFragment = new ProfileFragment();
         Bundle Directory = new Bundle();
-        Directory.putString("Directory",userDirectory);
+        Directory.putString("Directory", userDirectory);
         profileFragment.setArguments(Directory);
 
         TabLayout tabLayout = findViewById(R.id.tab_layout);
         ViewPager viewPager = findViewById(R.id.view_pager);
 
-        ViewPagerAdapter viewPagerAdapter= new ViewPagerAdapter(getSupportFragmentManager());
-        viewPagerAdapter.addFragment(new ChatsFragment(),"Chats");
+        ViewPagerAdapter viewPagerAdapter = new ViewPagerAdapter(getSupportFragmentManager());
+        viewPagerAdapter.addFragment(new ChatsFragment(), "Chats");
         viewPagerAdapter.addFragment(new UsersFragment(), "Users");
         viewPagerAdapter.addFragment(profileFragment, "Profile");
         viewPager.setAdapter(viewPagerAdapter);
         tabLayout.setupWithViewPager(viewPager);
+
         doBindService();
     }
 
@@ -247,22 +245,16 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
     public void initialSetUp() {
         discovery.setOnClickListener(v ->
         {
-            ActivityCompat.requestPermissions(LoggedInActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},MY_PERMISSION_REQUEST_CONSTANT);
-            ActivityCompat.requestPermissions(LoggedInActivity.this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},MY_PERMISSION_REQUEST_CONSTANT);
-            if (!btAdapter.isDiscovering())
-            {
+            ActivityCompat.requestPermissions(LoggedInActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERMISSION_REQUEST_CONSTANT);
+            ActivityCompat.requestPermissions(LoggedInActivity.this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, MY_PERMISSION_REQUEST_CONSTANT);
+
+            if (!btAdapter.isDiscovering()) {
                 Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
                 startActivityForResult(enableBtIntent, REQUEST_ENABLE_DISCOVERY);
             }
-            else
-            {
-                sendMessageToService(BT_END_DISCOVERY);
-            }
         });
 
-        askForKnownDevices();
-
-        initiateRecyclerView();
+        askForUserChatList();
 
         sendMessageToService(START_LISTENING);
     }
@@ -281,80 +273,39 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
         }
     }
 
-    /**
-     * Get the info of the currently known devices, into an array list
-     */
-    public void askForKnownDevices() {
-        sendMessageToService(BT_GET_DEVICES);
-    }
-
-    /**
-     * Clears the data in the recycler view. Its used when a new discovery is enabled, since
-     * old devices may have gone out of discovery.
-     */
-    private void resetRecyclerContent()
-    {
-        knownDevices = new ArrayList<>();
-        mAdapter.setArray(knownDevices);
-        mAdapter.notifyDataSetChanged();
-    }
-
-
-    /**
-     * Method will initiate the necessary mumbo jumbo of the recycler view, it will
-     * then create a list paired devices, ready to connect and chat.
-     * An item clicker listener is created, that creates a connection between devices
-     */
-    public void initiateRecyclerView() {
-        mRecyclerView = findViewById(R.id.pairedListView);
-        mRecyclerView.setHasFixedSize(true);
-        mLayoutManager = new LinearLayoutManager(this);
-
-        mAdapter = new DeviceRecyclerAdapter(knownDevices);
-
-        mRecyclerView.setLayoutManager(mLayoutManager);
-        mRecyclerView.setAdapter(mAdapter);
-
-
-        mAdapter.setOnItemClickListener(position -> {
-            Log.i(TAG, "Item clicked");
-            sendMessageToService(CONNECT, knownDevices.get(position));
-            Intent openChat = new Intent(LoggedInActivity.this, BluetoothChatMessages.class);
-            openChat.putExtra("device", knownDevices.get(position));
-            startActivity(openChat);
-        });
+    public void askForUserChatList() {
+        sendMessageToService(GET_USER_LIST);
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu,menu);
+        getMenuInflater().inflate(R.menu.menu, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        switch(item.getItemId())
-        {
-            case R.id.logout:FirebaseAuth.getInstance().signOut();
-                startActivity(new Intent(LoggedInActivity.this,MainActivity.class));
+        switch (item.getItemId()) {
+            case R.id.logout:
+                FirebaseAuth.getInstance().signOut();
+                startActivity(new Intent(LoggedInActivity.this, MainActivity.class));
                 finish();
                 return true;
         }
         return false;
     }
 
-    class ViewPagerAdapter extends FragmentPagerAdapter
-    {
+    class ViewPagerAdapter extends FragmentPagerAdapter {
         private ArrayList<Fragment> fragments;
         private ArrayList<String> titles;
 
-        ViewPagerAdapter(FragmentManager fm )
-        {
+        ViewPagerAdapter(FragmentManager fm) {
             super(fm);
-            this.fragments= new ArrayList<>();
+            this.fragments = new ArrayList<>();
             this.titles = new ArrayList<>();
 
         }
+
         @Override
         public Fragment getItem(int position) {
             return fragments.get(position);
@@ -365,8 +316,7 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
             return fragments.size();
         }
 
-        public void addFragment(Fragment fragment, String title)
-        {
+        public void addFragment(Fragment fragment, String title) {
             fragments.add(fragment);
             titles.add(title);
         }
@@ -379,9 +329,7 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
         }
     }
 
-    public ArrayList<BluetoothDevice> getDevices()
-    {
-        return knownDevices;
+    public ArrayList<UserChat> getUserChatList() {
+        return userChatList;
     }
-
 }

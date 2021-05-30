@@ -9,8 +9,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.os.Build;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -20,10 +18,15 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
+import com.example.mobilechatapp.Model.UserChat;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
 import java.util.UUID;
 
 public class BluetoothService extends Service implements BluetoothState {
@@ -33,13 +36,24 @@ public class BluetoothService extends Service implements BluetoothState {
     BluetoothAdapter btAdapter;
 
     /**
-     * List of unbounded devices
-     */
-    ArrayList<BluetoothDevice> unboundedDevices = new ArrayList<>();
-    /**
      * List of known devices.Unbounded and bounded
      */
     ArrayList<BluetoothDevice> knownDevices = new ArrayList<>();
+
+    /**
+     * List of devices that we are connected to
+     */
+    ArrayList<UserChat> userChatList = new ArrayList<>();
+
+    /**
+     * Small local memory
+     */
+    Map<UserChat, LinkedList<MessageInfo>> mem = new HashMap<>();
+
+    /**
+     * Maximum size of out local memory
+     */
+    int MAX_LOCAL_MEM = 10;
 
     /**
      * Variable to keep track of the registered clients
@@ -71,7 +85,16 @@ public class BluetoothService extends Service implements BluetoothState {
                 return;
             }
 
+            MessageInfo messageInfo;
+            UserChat userChat;
+            BluetoothDevice device;
+
             switch (msg.what) {
+                case TEST_RECEIVE_MSG:
+                    Log.i(TAG_ACTION, "Test message");
+                    sendSimpleMessage(msg.replyTo, TEST_RECEIVE_MSG, null);
+                    break;
+
                 case REGISTER_CLIENT:
                     Log.i(TAG_REQUEST, "New client" + msg.toString());
 
@@ -86,7 +109,6 @@ public class BluetoothService extends Service implements BluetoothState {
 
                     clients.remove(msg.replyTo);
                     Log.i(TAG_ACTION, "Remove client " + msg.toString());
-
                     break;
 
                 case BT_STATUS:
@@ -109,13 +131,13 @@ public class BluetoothService extends Service implements BluetoothState {
                     sendSimpleMessage(msg.replyTo, response, null);
                     break;
 
+                // We assume that however made this request, has asked for user permission
                 case BT_START_DISCOVERY:
                     Log.i(TAG_REQUEST, "Start discovery mode");
 
                     if (btAdapter.isDiscovering()) {
                         Log.i(TAG, "Discovery mode is already running");
                     } else {
-                        unboundedDevices.clear();
                         knownDevices.clear();
                         btAdapter.startDiscovery();
                     }
@@ -130,24 +152,14 @@ public class BluetoothService extends Service implements BluetoothState {
 
                     break;
 
-                case TEST_RECEIVE_MSG:
-                    Log.i(TAG_ACTION, "Test message");
-                    sendSimpleMessage(msg.replyTo, TEST_RECEIVE_MSG, null);
-                    break;
-
-                case BT_CREATE_BOUND:
-                    Log.i(TAG_REQUEST, "Bound creation");
-                    BluetoothDevice device = (BluetoothDevice) msg.obj;
-
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                        device.createBond();
-                    }
-
-                    break;
-
                 case BT_GET_DEVICES:
                     Log.i(TAG_REQUEST, "List of known devices");
                     sendSimpleMessage(msg.replyTo, BT_GET_DEVICES, knownDevices);
+                    break;
+
+                case GET_USER_LIST:
+                    Log.i(TAG_REQUEST, "List of connected users");
+                    sendSimpleMessage(msg.replyTo, GET_USER_LIST, userChatList);
                     break;
 
                 case START_LISTENING:
@@ -157,35 +169,55 @@ public class BluetoothService extends Service implements BluetoothState {
                         serverThread = new ServerThread();
                         serverThread.start();
                     }
-
                     break;
 
                 case CONNECT:
-                    BluetoothDevice dev = (BluetoothDevice) msg.obj;
-                    Log.i(TAG_REQUEST, "Connect with " + dev.getName());
+                    device = (BluetoothDevice) msg.obj;
+                    Log.i(TAG_REQUEST, "Connect with " + device.getName());
 
-                    if (!checkIfConnected(dev)) {
-                        ClientThread temp = new ClientThread(dev);
-                        temp.start();
-                    } else {
-                        Log.i(TAG, "Connection already exists");
-                    }
+                    tryToConnect(device);
                     break;
 
                 case MESSAGE_WRITE:
-                    Bundle bundle = msg.getData();
-                    String str = bundle.getString("message");
-                    String address = bundle.getString("deviceMac");
+                    messageInfo = (MessageInfo) msg.obj;
+                    userChat = messageInfo.getToUser();
 
-                    Log.i(TAG_REQUEST, "Send message to " + address);
+                    if (!checkIfConnected(userChat)) {
+                        Log.i(TAG, "Connection not found with " + userChat.toString());
+                    } else {
+                        // Find the connected thread with that particular user and try
+                        // to send a message
+                        findConnectionThread(userChat).write(messageInfo);
+                    }
+                    break;
 
-                    ConnectionThread connectionThread = findConnectionThreadByMac(address);
+                /**
+                 * Someone asked for a the history of messages between us and another user.
+                 * We did not implement security features here. We assume that however sends
+                 * the service request has the proper permission to see everything.
+                 * This is dangerous and should be fixed if we have time to spare
+                 */
+                case GET_MESSAGE_HISTORY:
+                    Log.i(TAG_REQUEST, "Message history");
+                    userChat = (UserChat) msg.obj;
 
-                    if (connectionThread == null)
-                        Log.i(TAG, "Connection thread not found");
+                    sendSimpleMessage(msg.replyTo, GET_MESSAGE_HISTORY, mem.get(userChat));
+                    break;
 
-                    else
-                        connectionThread.write(str);
+                /**
+                 * Get the object UserChat that contains the user name. This will be used
+                 * by activities that deal directly with message exchange visualization.
+                 */
+                case GET_USER:
+                    String name = (String) msg.obj;
+
+                    Log.i(TAG_REQUEST, "Get user with id: " + name);
+
+                    for (UserChat u : userChatList)
+                        if (u.getId().equals(name))
+                            sendSimpleMessage(msg.replyTo, GET_USER, u);
+
+                    // add the case where we can't find the user.
 
                     break;
 
@@ -196,9 +228,49 @@ public class BluetoothService extends Service implements BluetoothState {
     }
 
     /**
-     * Checks if a connection with a devices is formed
+     * Go though our list of known bluetooth devices that we found and try to form a conection
+     * with each of them.
+     */
+    void autoConnect() {
+        for (BluetoothDevice device : knownDevices) {
+            tryToConnect(device);
+        }
+    }
+
+    /**
+     * Try to form a connection with a bluetooth device. This method will call a new thread to
+     * try to form the connection. If successfull thhe new connection will be added to our
+     * local databa
      *
-     * @param device {@link BluetoothDevice} device to check
+     * @param device {@link BluetoothDevice} to connect
+     */
+    void tryToConnect(BluetoothDevice device) {
+        // If we don't have a confection with that particular device, then we will try to form one
+        if (!checkIfConnected(device)) {
+            ClientThread temp = new ClientThread(device);
+            temp.start();
+        } else {
+            Log.i(TAG, "Connection with " + device.getName() + " already exists");
+        }
+
+    }
+
+    /**
+     * Checks if we are connected with a particular device, identified by {@link UserChat} object
+     *
+     * @param userChat {@link UserChat} identifier
+     * @return true if a connection exists otherwise false
+     */
+    boolean checkIfConnected(UserChat userChat) {
+        ConnectionThread connectionThread = findConnectionThread(userChat);
+
+        return connectionThread != null;
+    }
+
+    /**
+     * Checks if we are connected with a particular device, identified by {@link BluetoothDevice}
+     *
+     * @param device {@link BluetoothDevice} identifier
      * @return true if connection with device exists, otherwise false
      */
     boolean checkIfConnected(BluetoothDevice device) {
@@ -208,7 +280,17 @@ public class BluetoothService extends Service implements BluetoothState {
     }
 
     /**
-     * Send message with an object, to a specific registered client
+     * Send identifier flag to a specific registered client
+     *
+     * @param destiny  {@link Messenger} client to send message
+     * @param response {@link BluetoothState} flag to send
+     */
+    void sendSimpleMessage(Messenger destiny, short response) {
+        sendSimpleMessage(destiny, response, null);
+    }
+
+    /**
+     * Send identifier flag and an object to a specific registered client
      *
      * @param destiny  {@link Messenger} client to send message
      * @param response {@link BluetoothState} flag to send
@@ -226,78 +308,24 @@ public class BluetoothService extends Service implements BluetoothState {
     }
 
     /**
-     * Send simple message to all the registered clients
+     * Send a identifier flag to o all the registered clients
      *
-     * @param response {@link BluetoothState} flag
+     * @param response {@link BluetoothState} Identifier flag
+     */
+    void sendAllSimpleMessage(short response) {
+        sendAllSimpleMessage(response, null);
+    }
+
+    /**
+     * Send a identifier flag and an object to o all the registered clients
+     *
+     * @param response {@link BluetoothState} Identifier flag
      * @param obj      Response object
      */
     void sendAllSimpleMessage(short response, Object obj) {
         for (Messenger client : clients)
             sendSimpleMessage(client, response, obj);
     }
-
-    /**
-     * Inform of a new message received.
-     *
-     * @param destiny Client to inform
-     * @param str     Contents of the message
-     * @param device  {@link BluetoothDevice} Source of the message
-     */
-    void informOfNewMessage(Messenger destiny, String str, BluetoothDevice device) {
-        Bundle bundle = new Bundle();
-        bundle.putString("message", str);
-        bundle.putString("device", device.getName());
-
-        Message msg = Message.obtain(null, MESSAGE_READ);
-        msg.setData(bundle);
-
-        try {
-            destiny.send(msg);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Inform all the clients of a received message
-     *
-     * @param str    contents of the message
-     * @param device {@link BluetoothDevice} source of the message
-     */
-    void informAllOfNewMessage(String str, BluetoothDevice device) {
-        for (Messenger client : clients)
-            informOfNewMessage(client, str, device);
-    }
-
-    /**
-     * Send message to a specific registered client
-     *
-     * @param destiny    {@link Messenger} client to send message
-     * @param response   response to send (In this case MESSAGE_READ which is 19).
-     * @param message    The text message
-     * @param deviceName What device sent us the text message {@param message}
-     */
-    void sendMessageToRead(Messenger destiny, short response, String message, String deviceName) {
-        Message msg = (message == null) ? Message.obtain(null, response) : Message.obtain(null, response, message);
-        Bundle bundle = new Bundle();
-        bundle.putString("message", message);
-        bundle.putString("device", deviceName);
-        msg.setData(bundle);
-        try {
-            destiny.send(msg);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Send message with a text message associated to all registered clients
-     */
-    void sendMessageToReadShort(short response, String message, String deviceName) {
-        for (Messenger client : clients)
-            sendMessageToRead(client, response, message, deviceName);
-    }
-
 
     /**
      * Target we publish for clients to send messages to handleMessage
@@ -325,9 +353,20 @@ public class BluetoothService extends Service implements BluetoothState {
         registerReceiver(receiver, filter);
     }
 
+    /**
+     * Professor says that onDestroy method is not always called when the service is closed.
+     * This a problem. We should do the contents of onDestroy in onStop. The catch is that
+     * we onStop method does not mean the service is destroyed, so we the service was resumed we
+     * needed to register the broadcast again and form the connection again.
+     * For now we will have to use onDestroy, but if time is available we should change this
+     */
     @Override
     public void onDestroy() {
         Log.i(TAG, "Service destruction");
+
+        // If service is destroyed then we close all connection thread
+        for (ConnectionThread thread : connectionThreads)
+            thread.terminateConnection();
 
         unregisterReceiver(receiver);
     }
@@ -393,12 +432,6 @@ public class BluetoothService extends Service implements BluetoothState {
                 Log.i(TAG, "Device found " + device.getName());
 
                 if (!knownDevices.contains(device)) {
-                    if (device.getBondState() == BluetoothDevice.BOND_NONE) {
-                        unboundedDevices.add(device);
-
-                        sendAllSimpleMessage(BT_UNBOUND_DEVICE_FOUND, device);
-                    }
-
                     knownDevices.add(device);
 
                     sendAllSimpleMessage(BT_DEVICE_FOUND, device);
@@ -416,7 +449,6 @@ public class BluetoothService extends Service implements BluetoothState {
                     switch (state) {
                         case BluetoothDevice.BOND_BONDED:
                             Log.i(TAG, "Device bonded");
-                            unboundedDevices.remove(device);
                             sendAllSimpleMessage(BT_DEVICE_BOUND, device);
                             break;
 
@@ -442,10 +474,6 @@ public class BluetoothService extends Service implements BluetoothState {
      * Server thread used to listen to incoming connection request
      */
     private ServerThread serverThread = null;
-    /**
-     * Client thread used to connect to other devices
-     */
-    private ClientThread clientThread = null;
 
     /**
      * List of connections
@@ -555,39 +583,87 @@ public class BluetoothService extends Service implements BluetoothState {
      * @param mySocket {@link BluetoothSocket} connection socket
      */
     private void createConnectionThread(BluetoothSocket mySocket) {
-        ConnectionThread connectionThread = new ConnectionThread(mySocket, mySocket.getRemoteDevice());
+        if (checkIfConnected(mySocket.getRemoteDevice())) {
+            return;
+        }
 
-        connectionThreads.add(connectionThread);
+        BluetoothDevice device = mySocket.getRemoteDevice();
+        UserChat userChat = new UserChat(device.getName(), device);
 
-        connectionThread.start();
+        ConnectionThread thread = new ConnectionThread(mySocket, userChat);
+        connectionThreads.add(thread);
+
+        thread.start();
     }
 
     /**
-     * Given a {@link BluetoothDevice}, this method will return the corresponding connection thread
+     * Given {@link UserChat} identifier this method will return the associated ConnectionThread
+     *
+     * @param user {@link UserChat} identifier
+     * @return null if connection thread is not found, otherwise the {@link ConnectionThread}
+     */
+    private ConnectionThread findConnectionThread(UserChat user) {
+        for (ConnectionThread thread : connectionThreads) {
+            if (thread.getUser().equals(user))
+                return thread;
+        }
+
+        return null;
+    }
+
+    /**
+     * Given a {@link BluetoothDevice} identifier this method will return the associated
+     * ConnectionThread
      *
      * @param device {@link BluetoothDevice} identifier
      * @return null if connection thread is not found, otherwise the {@link ConnectionThread}
      */
     private ConnectionThread findConnectionThread(BluetoothDevice device) {
-        return findConnectionThreadByMac(device.getAddress());
-    }
-
-    /**
-     * Find connectionThread by device mac address
-     *
-     * @param macAddress address of {@link BluetoothDevice}
-     * @return Connection Thread that has the corresponding mac address, otherwise null
-     */
-    private ConnectionThread findConnectionThreadByMac(String macAddress) {
-        for (ConnectionThread connectionThread : connectionThreads) {
-            String otherMacAddress = connectionThread.getDevice().getAddress();
-
-            if (connectionThread.getDevice().getAddress().equals(macAddress))
-                return connectionThread;
+        for (ConnectionThread thread : connectionThreads) {
+            if (thread.getUser().getDevice().equals(device))
+                return thread;
         }
 
         return null;
     }
+
+    /**
+     * Method will add A {@link MessageInfo} to our local memory.
+     * We are suposed to use a proper database, but given the time restrictions we decided to
+     * use a locak HashMap. In the future this need to change
+     *
+     * @param messageInfo {@link MessageInfo} to save
+     */
+    private void addToMemory(MessageInfo messageInfo) {
+        UserChat userChat;
+
+        if (messageInfo.getFromUser() == null) {
+            userChat = messageInfo.getToUser();
+        } else {
+            userChat = messageInfo.getFromUser();
+        }
+
+        Log.i(TAG, "Memory: " + mem.toString());
+
+        LinkedList<MessageInfo> list = mem.get(userChat);
+
+        if (list == null) {
+            Log.i(TAG, "List is null");
+
+            list = new LinkedList<>();
+            mem.put(userChat, list);
+        } else {
+            Log.i(TAG, "List is not null " + list);
+        }
+
+        while (list.size() >= MAX_LOCAL_MEM)
+            list.removeFirst();
+
+        list.addLast(messageInfo);
+
+        Log.i(TAG, "list2 :" + list == null ? "Empty" : list.toString());
+    }
+
 
     /**
      * Thread will initiate input and output channels between the two devices in two
@@ -595,32 +671,42 @@ public class BluetoothService extends Service implements BluetoothState {
      * Warning in the current implementation, device is used as unique identifier between different
      * connection threads
      */
-    private class ConnectionThread extends Thread {
+    public class ConnectionThread extends Thread {
         private final BluetoothSocket socket;
 
-        private final BluetoothDevice device;
+        private final UserChat user;
 
         private final Listen listen;
         private final Send send;
 
-        ConnectionThread(BluetoothSocket socket, BluetoothDevice device) {
+        ConnectionThread(BluetoothSocket socket, UserChat user) {
             Log.i(TAG2, "Creating connection thread");
 
             this.socket = socket;
-            this.device = device;
+            this.user = user;
 
-            listen = new Listen(socket, device);
+            listen = new Listen(socket);
             listen.start();
 
-            send = new Send(socket, device);
+            send = new Send(socket);
             send.start();
+
+            if (!userChatList.contains(user)) {
+                userChatList.add(user);
+                sendAllSimpleMessage(NEW_USER, user);
+                mem.put(user, new LinkedList<>());
+            }
         }
 
-        void write(String message) {
-            if (send != null) {
-                send.write(message);
-            } else
-                terminateConnection();
+        void write(MessageInfo messageInfo) {
+            if (send == null) {
+                Log.i(TAG2, "Send thread is dead");
+            } else if (messageInfo == null) {
+                Log.i(TAG2, "messageInfo is null");
+            } else {
+                addToMemory(messageInfo);
+                send.write(messageInfo.getContent());
+            }
         }
 
         void terminateConnection() {
@@ -635,11 +721,20 @@ public class BluetoothService extends Service implements BluetoothState {
             if (connectionThreads != null)
                 connectionThreads.remove(this);
 
+            try {
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            userChatList.remove(user);
+            sendAllSimpleMessage(REMOVE_USER, null);
+
             this.interrupt();
         }
 
-        public BluetoothDevice getDevice() {
-            return device;
+        public UserChat getUser() {
+            return user;
         }
 
         public class Listen extends Thread {
@@ -647,7 +742,7 @@ public class BluetoothService extends Service implements BluetoothState {
             private byte[] myBuffer;
             private static final int BUFFER_SIZE = 1024;
 
-            private Listen(BluetoothSocket socket, BluetoothDevice device) {
+            private Listen(BluetoothSocket socket) {
                 Log.i(TAG2, "Creating listening thread");
 
                 InputStream tempIn = null;
@@ -669,10 +764,14 @@ public class BluetoothService extends Service implements BluetoothState {
                         myIn.read(myBuffer);
                         String str = new String(myBuffer);
 
-                        Log.i(TAG, "New message from " + device.getAddress());
+                        Log.i(TAG, "New message from " + user);
+
+                        MessageInfo messageInfo = new MessageInfo(user, null, str);
+
+                        addToMemory(messageInfo);
 
                         // Device in Connection Thread
-                        informAllOfNewMessage(str, device);
+                        sendAllSimpleMessage(MESSAGE_READ, new MessageInfo(user, null, str));
                     } catch (IOException e) {
                         Log.e(TAG2, "Input stream was disconnected");
                         terminateConnection();
@@ -685,7 +784,7 @@ public class BluetoothService extends Service implements BluetoothState {
         private class Send extends Thread {
             private final OutputStream myOut;
 
-            private Send(BluetoothSocket mySocket, BluetoothDevice connectedDevice) {
+            private Send(BluetoothSocket mySocket) {
                 Log.i(TAG2, "Creating writing thread");
 
                 OutputStream tempOut = null;
@@ -711,6 +810,7 @@ public class BluetoothService extends Service implements BluetoothState {
             }
         }
     }
+
 
 }
 
