@@ -48,11 +48,10 @@ public class ChatsFragment extends Fragment {
 
     private void find_bonded_devices()
     {
-        Set<BluetoothDevice> temp = btAdapter.getBondedDevices();
+        // If service hasn't searched yet for devices then the arrayList will be null
+        ArrayList<BluetoothDevice> knownDevices = ((LoggedInActivity)getActivity()).getDevices();
 
-        btArrayDevice = new ArrayList<>();
-        btArrayDevice.addAll(temp);
-        mAdapter = new DeviceRecyclerAdapter(btArrayDevice);
+        mAdapter = new DeviceRecyclerAdapter(knownDevices);
 
         recyclerView.setLayoutManager(recyclerView.getLayoutManager());
         recyclerView.setAdapter(mAdapter);

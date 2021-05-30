@@ -315,6 +315,7 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
         mRecyclerView.setLayoutManager(mLayoutManager);
         mRecyclerView.setAdapter(mAdapter);
 
+
         mAdapter.setOnItemClickListener(position -> {
             Log.i(TAG, "Item clicked");
             sendMessageToService(CONNECT, knownDevices.get(position));
@@ -376,6 +377,11 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
         public CharSequence getPageTitle(int position) {
             return titles.get(position);
         }
+    }
+
+    public ArrayList<BluetoothDevice> getDevices()
+    {
+        return knownDevices;
     }
 
 }
