@@ -1,6 +1,7 @@
 package com.example.mobilechatapp;
 
 import android.Manifest;
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.content.ComponentName;
 import android.content.Context;
@@ -53,6 +54,7 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
 
     CircleImageView profilePicture;
     TextView username;
+    User userToPass;
 
     FirebaseUser fireBaseUser;
     DatabaseReference reference;
@@ -69,6 +71,7 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
      * Buttons
      */
     Button discovery;
+    Button feed;
 
     /**
      * Messenger for communicating with service.
@@ -212,14 +215,19 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
         discovery = findViewById(R.id.discovery);
         profilePicture = findViewById(R.id.profile_image);
         username = findViewById(R.id.username);
+        feed = findViewById(R.id.Feed);
+
 
         fireBaseUser = FirebaseAuth.getInstance().getCurrentUser();
         reference = FirebaseDatabase.getInstance().getReference("Users").child(userDirectory);
+
+
 
         reference.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 User user = snapshot.getValue(User.class);
+                userToPass = user; // To pass later on
                 username.setText(userDirectory);
                 String imageUrl = user.getImageUrl();
                 if (imageUrl.equals("default")) {
@@ -233,6 +241,13 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
             public void onCancelled(@NonNull DatabaseError error) {
 
             }
+        });
+
+        feed.setOnClickListener(v ->
+        {
+            Intent feed = new Intent(LoggedInActivity.this,Feed.class);
+            feed.putExtra("user",userToPass);
+            startActivity(feed);
         });
 
         /* Pass username to Profile fragment */

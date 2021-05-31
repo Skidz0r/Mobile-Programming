@@ -2,7 +2,9 @@ package com.example.mobilechatapp.Information;
 
 import android.bluetooth.BluetoothDevice;
 
-public class User {
+import java.io.Serializable;
+
+public class User implements Serializable {
     private String UserId;
     private String Username;
     private String ImageUrl;
