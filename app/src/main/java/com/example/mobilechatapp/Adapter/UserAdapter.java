@@ -11,11 +11,8 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
-import com.example.mobilechatapp.DeviceRecyclerAdapter;
-import com.example.mobilechatapp.Model.User;
+import com.example.mobilechatapp.Information.User;
 import com.example.mobilechatapp.R;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 
 
 import java.util.List;

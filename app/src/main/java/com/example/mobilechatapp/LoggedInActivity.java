@@ -32,8 +32,9 @@ import com.bumptech.glide.Glide;
 import com.example.mobilechatapp.Fragments.ChatsFragment;
 import com.example.mobilechatapp.Fragments.ProfileFragment;
 import com.example.mobilechatapp.Fragments.UsersFragment;
-import com.example.mobilechatapp.Model.User;
-import com.example.mobilechatapp.Model.UserChat;
+import com.example.mobilechatapp.Information.BluetoothState;
+import com.example.mobilechatapp.Information.User;
+import com.example.mobilechatapp.Information.UserChat;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -86,7 +87,7 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
     /**
      * Tag used in Logs to identify class
      */
-    final String TAG = "BluetoothChat";
+    final String TAG = "LoggedIn";
 
 
     /**
@@ -103,13 +104,24 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
                     break;
 
                 case NEW_USER:
+                case REMOVE_USER:
                     sendMessageToService(GET_USER_LIST);
                     break;
 
                 case GET_USER_LIST:
-                    FragmentManager fm = getSupportFragmentManager();
-                    ChatsFragment chatsFragment = (ChatsFragment) fm.findFragmentByTag("Chats");
-                    chatsFragment.updateUserChatList(userChatList);
+                    Log.i(TAG, "User list update");
+                    userChatList = (ArrayList<UserChat>) msg.obj;
+
+                    // Update fragment data
+                    ((ChatsFragment) chatsFragment).updateUserChatList(userChatList);
+                    break;
+
+                case BT_END_DISCOVERY:
+                    discovery.setText("Start discovery");
+                    break;
+
+                case BT_START_DISCOVERY:
+                    discovery.setText("End discovery");
                     break;
 
                 default:
@@ -182,6 +194,8 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
         }
     }
 
+    Fragment chatsFragment;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -231,7 +245,11 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
         ViewPager viewPager = findViewById(R.id.view_pager);
 
         ViewPagerAdapter viewPagerAdapter = new ViewPagerAdapter(getSupportFragmentManager());
-        viewPagerAdapter.addFragment(new ChatsFragment(), "Chats");
+
+        Log.i(TAG, "Passou===");
+        chatsFragment = new ChatsFragment();
+
+        viewPagerAdapter.addFragment(chatsFragment, "Chats");
         viewPagerAdapter.addFragment(new UsersFragment(), "Users");
         viewPagerAdapter.addFragment(profileFragment, "Profile");
         viewPager.setAdapter(viewPagerAdapter);
@@ -252,11 +270,14 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
                 Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
                 startActivityForResult(enableBtIntent, REQUEST_ENABLE_DISCOVERY);
             }
+            else {
+                sendMessageToService(BT_END_DISCOVERY);
+            }
         });
 
-        askForUserChatList();
-
         sendMessageToService(START_LISTENING);
+
+        askForUserChatList();
     }
 
     @Override
@@ -269,6 +290,8 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
             } else {
                 Log.i(TAG, "Discovery request accepted");
                 sendMessageToService(BT_START_DISCOVERY);
+
+                discovery.setText("Stop discovery");
             }
         }
     }

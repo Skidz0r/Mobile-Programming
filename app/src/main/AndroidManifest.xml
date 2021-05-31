@@ -21,11 +21,7 @@
         <activity android:name=".LoginActivity" />
         <activity android:name=".LoggedInActivity" />
         <activity android:name=".RegisterActivity" />
-        <activity android:name=".BluetoothChatMessages" />
-        <activity android:name=".BluetoothChat" />
-        <activity android:name=".Profile_Settings" />
-        <activity android:name=".Profile" />
-        <activity android:name=".BluetoothSetting" />
+        <activity android:name=".ChatActivity" />
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

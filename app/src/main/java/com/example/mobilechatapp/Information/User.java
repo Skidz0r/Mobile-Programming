@@ -1,7 +1,6 @@
-package com.example.mobilechatapp.Model;
+package com.example.mobilechatapp.Information;
 
 import android.bluetooth.BluetoothDevice;
-import android.os.Parcel;
 
 public class User {
     private String UserId;
@@ -92,7 +91,7 @@ public class User {
         this.ImageUrl = ImageUrl;
     }
 
-    public boolean equals(com.example.mobilechatapp.Model.User user) {
+    public boolean equals(com.example.mobilechatapp.Information.User user) {
         if ( user.getUserId().equals(UserId) /*&& user.getUserDevice().equals(device) */)
             return true;
 

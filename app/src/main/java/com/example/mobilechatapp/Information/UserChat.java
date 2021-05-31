@@ -1,4 +1,4 @@
-package com.example.mobilechatapp.Model;
+package com.example.mobilechatapp.Information;
 
 import android.bluetooth.BluetoothDevice;
 

@@ -18,7 +18,9 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
-import com.example.mobilechatapp.Model.UserChat;
+import com.example.mobilechatapp.Information.BluetoothState;
+import com.example.mobilechatapp.Information.MessageInfo;
+import com.example.mobilechatapp.Information.UserChat;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -401,6 +403,8 @@ public class BluetoothService extends Service implements BluetoothState {
                 if (knownDevices.size() == 0)
                     Log.i(TAG, "No devices were found.");
 
+                autoConnect();
+
                 sendAllSimpleMessage(BT_END_DISCOVERY, null);
             }
 
@@ -429,10 +433,10 @@ public class BluetoothService extends Service implements BluetoothState {
             else if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 assert device != null;
-                Log.i(TAG, "Device found " + device.getName());
 
-                if (!knownDevices.contains(device)) {
+                if ( device.getName() != null && !knownDevices.contains(device)) {
                     knownDevices.add(device);
+                    Log.i(TAG, "Device found " + device.getName());
 
                     sendAllSimpleMessage(BT_DEVICE_FOUND, device);
                 }
@@ -728,7 +732,7 @@ public class BluetoothService extends Service implements BluetoothState {
             }
 
             userChatList.remove(user);
-            sendAllSimpleMessage(REMOVE_USER, null);
+            sendAllSimpleMessage(REMOVE_USER, user);
 
             this.interrupt();
         }

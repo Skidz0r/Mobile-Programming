@@ -1,4 +1,4 @@
-package com.example.mobilechatapp;
+package com.example.mobilechatapp.Information;
 
 public interface BluetoothState {
     static final short REGISTER_CLIENT = 0;

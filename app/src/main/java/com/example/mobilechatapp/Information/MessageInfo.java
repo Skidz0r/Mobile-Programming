@@ -1,6 +1,4 @@
-package com.example.mobilechatapp;
-
-import com.example.mobilechatapp.Model.UserChat;
+package com.example.mobilechatapp.Information;
 
 public class MessageInfo {
     private final UserChat fromUser;
