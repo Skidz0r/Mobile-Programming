@@ -167,6 +167,9 @@ public class ProfileFragment extends Fragment {
             {
                 /* Set user */
                 user = snapshot.getValue(User.class);
+                ageEdit.setText(user.getAge());
+                cityEdit.setText(user.getCity());
+                genderEdit.setText(user.getGender());
                 String imageUrl = user.getImageUrl();
               Glide.with(getActivity()).load(imageUrl).into(profileImage);
             }
