@@ -182,7 +182,7 @@ public class ChatActivity extends AppCompatActivity implements BluetoothState {
      * Method to send message to the other devices
      */
     public void sendMessageToDevice(String message) {
-        if ( userChat == null ) {
+        if (userChat == null) {
             Log.i(TAG, "User is null. Message ignored");
             return;
         }
@@ -233,10 +233,12 @@ public class ChatActivity extends AppCompatActivity implements BluetoothState {
                 case MESSAGE_READ:
                     messageInfo = (MessageInfo) msg.obj;
 
-                    Log.i(TAG, "GET _> " + messageInfo.getContent());
+                    if (messageInfo.getFromUser().equals(userChat)) {
 
-                    messageList.add(messageInfo);
-                    mMessageAdapter.notifyDataSetChanged();
+                        messageList.add(messageInfo);
+                        mMessageAdapter.notifyDataSetChanged();
+                    }
+
                     break;
 
                 case GET_MESSAGE_HISTORY:
@@ -257,7 +259,7 @@ public class ChatActivity extends AppCompatActivity implements BluetoothState {
                 case REMOVE_USER:
                     UserChat user = (UserChat) msg.obj;
 
-                    if ( user.equals(userChat) ) {
+                    if (user.equals(userChat)) {
                         Log.i(TAG, "User disconnected");
                         finish();
                     }

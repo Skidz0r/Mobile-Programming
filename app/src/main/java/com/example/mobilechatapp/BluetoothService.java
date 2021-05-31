@@ -9,6 +9,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -17,6 +18,7 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
 import com.example.mobilechatapp.Information.BluetoothState;
 import com.example.mobilechatapp.Information.MessageInfo;
@@ -716,6 +718,14 @@ public class BluetoothService extends Service implements BluetoothState {
         void terminateConnection() {
             Log.i(TAG2, "Terminating connection channel");
 
+            try {
+                listen.myIn.close();
+                send.myOut.close();
+                socket.close();
+            } catch (IOException e) {
+                Log.i(TAG2, "Failed to close socket");
+            }
+
             if (listen != null)
                 listen.interrupt();
 
@@ -760,28 +770,48 @@ public class BluetoothService extends Service implements BluetoothState {
                 myIn = tempIn;
             }
 
+            @RequiresApi(api = Build.VERSION_CODES.KITKAT)
             public void run() {
                 myBuffer = new byte[BUFFER_SIZE];
+                int curPos = 0;
+                int size = 0;
+                byte lastByte = 0;
+                boolean cont = true;
 
-                while (true) {
+                while (cont) {
                     try {
-                        myIn.read(myBuffer);
-                        String str = new String(myBuffer);
+                        size = myIn.read(myBuffer, curPos, 1);
 
-                        Log.i(TAG, "New message from " + user);
+                        if ( lastByte != 0 && lastByte == '\n' && myBuffer[curPos] == '\n') {
+                            String str = decodeMessage(myBuffer, curPos-1);
 
-                        MessageInfo messageInfo = new MessageInfo(user, null, str);
+                            Log.i(TAG, "New message from " + user);
+                            Log.i(TAG, "Content " + str);
 
-                        addToMemory(messageInfo);
+                            MessageInfo messageInfo = new MessageInfo(user, null, str);
 
-                        // Device in Connection Thread
-                        sendAllSimpleMessage(MESSAGE_READ, new MessageInfo(user, null, str));
+                            addToMemory(messageInfo);
+
+                            sendAllSimpleMessage(MESSAGE_READ, messageInfo);
+
+                            lastByte = 0;
+
+                            curPos = 0;
+                        } else {
+                            lastByte = myBuffer[curPos];
+                            curPos++;
+                        }
+
                     } catch (IOException e) {
                         Log.e(TAG2, "Input stream was disconnected");
                         terminateConnection();
-                        break;
+                        cont = false;
                     }
                 }
+            }
+
+            private String decodeMessage(byte[] buffer, int size) {
+                return new String(myBuffer, 0, size);
             }
         }
 
@@ -805,7 +835,7 @@ public class BluetoothService extends Service implements BluetoothState {
             public void write(String message) {
                 try {
                     Log.i(TAG2, "Trying to send message");
-                    myOut.write(message.getBytes());
+                    myOut.write((message + "\n\n").getBytes());
                     Log.i(TAG2, "Message send");
                 } catch (IOException e) {
                     Log.e(TAG2, "Failed to send data");

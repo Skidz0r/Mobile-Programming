@@ -58,14 +58,8 @@ public class ChatsFragment extends Fragment {
     public void updateUserChatList(ArrayList<UserChat> chatUserList) {
         Log.i(TAG, "Update chat list");
         this.chatUserList = chatUserList;
-
-        if (mAdapter == null) {
-            Log.i(TAG, "Its null");
-        } else {
-            Log.i(TAG, "Not null");
-            mAdapter.setArray(chatUserList);
-            mAdapter.notifyDataSetChanged();
-        }
+        mAdapter.setArray(chatUserList);
+        mAdapter.notifyDataSetChanged();
     }
 
 }
