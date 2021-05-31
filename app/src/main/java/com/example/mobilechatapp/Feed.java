@@ -1,7 +1,9 @@
 package com.example.mobilechatapp;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -32,6 +34,7 @@ public class Feed extends AppCompatActivity {
     private List<FeedPosts> Posts;
     Button postOnWall;
     User user;
+    Context context = this;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,7 +44,7 @@ public class Feed extends AppCompatActivity {
         postOnWall = findViewById(R.id.postOnWall);
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        Posts = new ArrayList<FeedPosts>();
+        Posts = new ArrayList<>();
 
         /* Get user that was passed */
         Intent intent = getIntent();
@@ -71,14 +74,16 @@ public class Feed extends AppCompatActivity {
             {
                 Posts.clear();
 
-                for(DataSnapshot snap : snapshot.getChildren()) // Cycle throughout the users
+                for(DataSnapshot snap : snapshot.getChildren())
                 {
-                    Log.i("Debugging","UsernameDB:"+snap.getKey()+"Post:"+snap.child("Post").getValue().toString());
-                    FeedPosts user = new FeedPosts(snap.getKey(),snap.child("Post").getValue().toString());
+                    FeedPosts user = snap.getValue(FeedPosts.class);
+                    Log.i("FeedFirst",user.getUsername()+user.getPostMessage()+snap.getKey());
                     assert user != null;
+                    user.setHours(snap.getKey());
                     Posts.add(user);
                 }
-                feedAdapter = new FeedAdapter(getBaseContext(), Posts);
+                Log.i("FeedDebug",Posts.get(0).getUsername());
+                feedAdapter = new FeedAdapter(context , Posts);
                 recyclerView.setAdapter(feedAdapter);
             }
 

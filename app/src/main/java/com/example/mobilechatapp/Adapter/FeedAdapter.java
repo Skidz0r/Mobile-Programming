@@ -25,6 +25,8 @@ public class FeedAdapter extends RecyclerView.Adapter<FeedAdapter.FeedViewHolder
     private Context context;
     private List<FeedPosts> posts;
 
+
+
     public FeedAdapter(Context context, List<FeedPosts> posts)
     {
         this.context = context;
@@ -36,12 +38,14 @@ public class FeedAdapter extends RecyclerView.Adapter<FeedAdapter.FeedViewHolder
         public TextView username;
         public ImageView profile_image;
         public TextView post;
+        public TextView time;
 
         public FeedViewHolder(@NonNull View itemView) {
             super(itemView);
             username = itemView.findViewById(R.id.usernameFeed);
             profile_image = itemView.findViewById(R.id.profile_image_feed);
             post = itemView.findViewById(R.id.postFeed);
+            time = itemView.findViewById(R.id.timeFeed);
         }
     }
 
@@ -59,15 +63,26 @@ public class FeedAdapter extends RecyclerView.Adapter<FeedAdapter.FeedViewHolder
     {
         FeedPosts user = posts.get(position);
         holder.username.setText(user.getUsername());
-        holder.post.setText(user.getPost());
-        /*if(user.getImageUrl().equals("default"))
+        holder.post.setText(user.getPostMessage());
+
+        /* Time Settings */
+        String time = user.getHours();
+        String Year = time.substring(0,4);
+        String Month = time.substring(4,6);
+        String Day = time.substring(6,8);
+        String Hour = time.substring(9,11);
+        String Minutes = time.substring(11,13);
+        holder.time.setText(Day+"-"+Month+"-"+Year+" "+Hour+":"+Minutes);
+
+        /* Set Image */
+        if(user.getImageUrl().equals("default"))
         {
             holder.profile_image.setImageResource(R.mipmap.ic_launcher);
         }
         else
         {
             Glide.with(context).load(user.getImageUrl()).into(holder.profile_image);
-        }*/
+        }
     }
 
     @Override
