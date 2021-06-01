@@ -13,37 +13,34 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ListView;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.util.ArrayList;
+import com.example.mobilechatapp.Adapter.MessageListAdapter;
+import com.example.mobilechatapp.Information.BluetoothState;
+import com.example.mobilechatapp.Information.MessageInfo;
+import com.example.mobilechatapp.Information.UserChat;
+
 import java.util.LinkedList;
+import java.util.List;
 import java.util.UUID;
 
-public class BluetoothChatMessages extends AppCompatActivity implements BluetoothState {
+public class ChatActivity extends AppCompatActivity implements BluetoothState {
     // Default android bluetooth adapter
     BluetoothAdapter btAdapter;
-    // Holds a list of paired devices
-    ArrayList<BluetoothDevice> btArrayDevice;
     // Connected device
     private BluetoothDevice device;
 
-    /* Recycler stuff */
-    RecyclerView mRecyclerView;
-    DeviceRecyclerAdapter mAdapter;
-    RecyclerView.LayoutManager mLayoutManager;
-
     /* MainChat Defines */
     private Context context;
-    private ListView listMainChat;
     private EditText createMessage;
     private Button sendButton;
-    private ArrayAdapter<String> adapterMainChat;
+    private TextView username;
 
     /**
      * Messenger for communicating with service.
@@ -71,40 +68,47 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
     private final static UUID MY_UUID = UUID.fromString("b885d9a0-b9a7-4a2a-b05d-b3aae45c9192");
 
     String userName;
-    User user;
+    UserChat userChat;
 
-    final String TAG = "BluetoothChatMessages";
+    final String TAG = "BluetoothChat";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_bluetooth_chat_messages);
+        setContentView(R.layout.activity_chat);
         btAdapter = BluetoothAdapter.getDefaultAdapter();
-        btArrayDevice = new ArrayList<>();
 
         /* Important stuff for main chat */
-        context = BluetoothChatMessages.this;
-        load_main_chat();
+        context = ChatActivity.this;
+        loadMainChat();
         doBindService();
 
         /* Start Connection to other device */
-        userName = getIntent().getStringExtra("userName");
-        Log.i(TAG, "--> " + userName);
+        userName = getIntent().getStringExtra("userChatId");
     }
 
-    public void load_main_chat() {
-        /* Main Chat */
-        listMainChat = findViewById(R.id.list_conversation);
-        createMessage = findViewById(R.id.Enter_Message);
-        sendButton = findViewById(R.id.Send_Message);
-        adapterMainChat = new ArrayAdapter<>(context, R.layout.message_layout);
-        listMainChat.setAdapter(adapterMainChat);
+    private RecyclerView mMessageRecycler;
+    private MessageListAdapter mMessageAdapter;
+    private List<MessageInfo> messageList = new LinkedList<>();
 
-        sendButton.setOnClickListener(view -> {
+    public void loadMainChat() {
+        mMessageRecycler = (RecyclerView) findViewById(R.id.recycler_list_chat);
+        mMessageAdapter = new MessageListAdapter(this, messageList);
+        mMessageRecycler.setLayoutManager(new LinearLayoutManager(this));
+        mMessageRecycler.setAdapter(mMessageAdapter);
+
+        sendButton = findViewById(R.id.button_send);
+
+        createMessage = findViewById(R.id.edit_message);
+
+        username = findViewById(R.id.username);
+
+        sendButton.setOnClickListener(v -> {
             String message = createMessage.getText().toString();
 
             if (!message.isEmpty()) {
-                createMessage.setText("");
+                createMessage.setText(null);
+                Log.i(TAG, "TRY -> " + message);
                 sendMessageToDevice(message);
             }
         });
@@ -142,7 +146,7 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
             Log.i(TAG, "Client already bound to service");
         } else {
             Log.i(TAG, "Attempting to bind to a service");
-            bindService(new Intent(BluetoothChatMessages.this, BluetoothService.class), connection, Context.BIND_AUTO_CREATE);
+            bindService(new Intent(ChatActivity.this, BluetoothService.class), connection, Context.BIND_AUTO_CREATE);
         }
     }
 
@@ -178,15 +182,16 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
      * Method to send message to the other devices
      */
     public void sendMessageToDevice(String message) {
-        if ( user == null ) {
+        if (userChat == null) {
             Log.i(TAG, "User is null. Message ignored");
             return;
         }
 
-        MessageInfo messageInfo = new MessageInfo(null, user, message);
+        MessageInfo messageInfo = new MessageInfo(null, userChat, message);
 
         sendMessageToService(MESSAGE_WRITE, messageInfo);
-        adapterMainChat.add("me: " + message);
+        messageList.add(messageInfo);
+        mMessageAdapter.notifyDataSetChanged();
     }
 
     /**
@@ -228,7 +233,11 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
                 case MESSAGE_READ:
                     messageInfo = (MessageInfo) msg.obj;
 
-                    adapterMainChat.add(messageInfo.getFromUser() + "\n" + messageInfo.getContent());
+                    if (messageInfo.getFromUser().equals(userChat)) {
+
+                        messageList.add(messageInfo);
+                        mMessageAdapter.notifyDataSetChanged();
+                    }
                     break;
 
                 case GET_MESSAGE_HISTORY:
@@ -240,9 +249,25 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
                     break;
 
                 case GET_USER:
-                    user = (User) msg.obj;
-                    Log.i(TAG, "User is " + user);
-                    sendMessageToService(GET_MESSAGE_HISTORY, user);
+                    userChat = (UserChat) msg.obj;
+                    Log.i(TAG, "User is " + userChat);
+                    username.setText(userChat.getId());
+                    sendMessageToService(GET_MESSAGE_HISTORY, userChat);
+                    break;
+
+                /**
+                 * Service informed us that a user was removed, i.e we lost connection to one
+                 * previously known user. This user might be the one we are currently talking, if
+                 * so we need to close activity. If time is available we could try to save the
+                 * message until a connection is reestablished
+                 */
+                case REMOVE_USER:
+                    UserChat user = (UserChat) msg.obj;
+
+                    if (user.equals(userChat)) {
+                        Log.i(TAG, "User disconnected");
+                        finish();
+                    }
                     break;
 
                 default:
@@ -251,16 +276,15 @@ public class BluetoothChatMessages extends AppCompatActivity implements Bluetoot
         }
     }
 
+    /**
+     * Reset the content os the recycler view
+     * @param list List of exchanged messages
+     */
     private void resetRecyclerContent(LinkedList<MessageInfo> list) {
         if (list == null)
             return;
 
-        adapterMainChat.clear();
-
-        for (MessageInfo info : list) {
-            String who = info.getFromUser() == null ? "me: " : info.getFromUser().toString();
-            adapterMainChat.add(who + info.getContent());
-        }
+        mMessageAdapter.setList(list);
+        mMessageAdapter.notifyDataSetChanged();
     }
-
 }

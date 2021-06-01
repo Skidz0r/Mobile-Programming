@@ -1,6 +1,5 @@
-package com.example.mobilechatapp;
+package com.example.mobilechatapp.Adapter;
 
-import android.bluetooth.BluetoothDevice;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,11 +8,14 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.mobilechatapp.Information.UserChat;
+import com.example.mobilechatapp.R;
+
 import java.util.ArrayList;
 
-public class DeviceRecyclerAdapterSettingActivity extends RecyclerView.Adapter<DeviceRecyclerAdapterSettingActivity.DeviceViewHolder> {
+public class DeviceRecyclerAdapter extends RecyclerView.Adapter<DeviceRecyclerAdapter.DeviceViewHolder> {
 
-    private ArrayList<BluetoothDevice> mArrayDevice;
+    private ArrayList<UserChat> mArrayDevice;
     private OnItemClickListener mListener;
 
     public interface OnItemClickListener {
@@ -26,19 +28,17 @@ public class DeviceRecyclerAdapterSettingActivity extends RecyclerView.Adapter<D
 
     public static class DeviceViewHolder extends RecyclerView.ViewHolder {
         public TextView deviceName;
-        public TextView deviceAddress;
 
-        public DeviceViewHolder(@NonNull View itemView, DeviceRecyclerAdapterSettingActivity.OnItemClickListener listener) {
+        public DeviceViewHolder(@NonNull View itemView, OnItemClickListener listener) {
             super(itemView);
 
             deviceName = itemView.findViewById(R.id.textView1);
-            deviceAddress = itemView.findViewById(R.id.textView2);
 
             itemView.setOnClickListener(v -> {
-                if (listener != null) {
+                if ( listener != null ) {
                     int position = getAdapterPosition();
 
-                    if (position != RecyclerView.NO_POSITION) {
+                    if ( position != RecyclerView.NO_POSITION ) {
                         listener.onItemClick(position);
                     }
                 }
@@ -46,11 +46,11 @@ public class DeviceRecyclerAdapterSettingActivity extends RecyclerView.Adapter<D
         }
     }
 
-    public DeviceRecyclerAdapterSettingActivity(ArrayList<BluetoothDevice> arr) {
+    public DeviceRecyclerAdapter(ArrayList<UserChat> arr) {
         mArrayDevice = arr;
     }
 
-    public void setArray(ArrayList<BluetoothDevice> arr) {
+    public void setArray(ArrayList<UserChat> arr) {
         mArrayDevice = arr;
     }
 
@@ -62,10 +62,9 @@ public class DeviceRecyclerAdapterSettingActivity extends RecyclerView.Adapter<D
 
     @Override
     public void onBindViewHolder(@NonNull DeviceViewHolder holder, int position) {
-        BluetoothDevice device = mArrayDevice.get(position);
-        holder.deviceName.setText(device.getName());
-        holder.deviceAddress.setText(device.getAddress());
+        UserChat userChat = mArrayDevice.get(position);
 
+        holder.deviceName.setText(userChat.getId());
     }
 
     @Override

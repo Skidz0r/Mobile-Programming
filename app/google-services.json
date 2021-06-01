@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "450764450705",
+    "firebase_url": "https://mobileprogramming-861da-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "mobileprogramming-861da",
+    "storage_bucket": "mobileprogramming-861da.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:450764450705:android:5e485c544b4659fada0830",
+        "android_client_info": {
+          "package_name": "com.example.mobilechatapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "450764450705-cjto64ihaomtbs2dlf1l21ghmbohfcoo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA6BbR_13pEZeR7xykVe5NPlx9KtEsf2Hs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "450764450705-cjto64ihaomtbs2dlf1l21ghmbohfcoo.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
