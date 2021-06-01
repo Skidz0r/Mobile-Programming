@@ -8,7 +8,7 @@
 
     <TextView
         android:id="@+id/usernameFeed"
-        android:layout_width="71dp"
+        android:layout_width="64dp"
         android:layout_height="wrap_content"
         android:layout_alignStart="@+id/profile_image_feed"
         android:layout_alignLeft="@+id/profile_image_feed"
@@ -29,7 +29,7 @@
 
     <TextView
         android:id="@+id/postFeed"
-        android:layout_width="259dp"
+        android:layout_width="253dp"
         android:layout_height="57dp"
         android:layout_alignTop="@+id/profile_image_feed"
         android:layout_alignParentEnd="true"
