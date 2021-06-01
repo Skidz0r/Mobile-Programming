@@ -29,8 +29,8 @@
 
     <TextView
         android:id="@+id/postFeed"
-        android:layout_width="250dp"
-        android:layout_height="50dp"
+        android:layout_width="259dp"
+        android:layout_height="57dp"
         android:layout_alignTop="@+id/profile_image_feed"
         android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
