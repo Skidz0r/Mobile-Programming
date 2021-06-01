@@ -22,78 +22,84 @@
                 android:textStyle="bold"/>
 
             <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="150dp"
-                android:layout_marginTop="200dp"
-                android:textSize="20dp"
-                android:text="Age:"
                 android:id="@+id/ageDraw"
-                android:textColor="@color/cyan_blue"
-                android:textStyle="bold" />
-
-            <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_below="@+id/Username"
                 android:layout_marginLeft="150dp"
-                android:layout_marginTop="270dp"
-                android:textSize="20dp"
-                android:text="City:"
+                android:layout_marginTop="22dp"
+                android:text="Age:"
                 android:textColor="@color/cyan_blue"
-                android:id="@+id/cityDraw"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="115dp"
-                android:layout_marginTop="340dp"
                 android:textSize="20dp"
-                android:text="Gender:"
-                android:textColor="@color/cyan_blue"
-                android:id="@+id/genderDraw"
                 android:textStyle="bold" />
 
             <EditText
                 android:id="@+id/ageEdit"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_below="@+id/Username"
+                android:layout_marginLeft="200dp"
+                android:layout_marginTop="9dp"
                 android:ems="2"
                 android:hint="Age"
                 android:inputType="number"
-                android:layout_marginTop="190dp"
-                android:layout_marginLeft="200dp"
                 android:text="Age" />
+
+            <TextView
+                android:id="@+id/cityDraw"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/ageDraw"
+                android:layout_marginLeft="150dp"
+                android:layout_marginTop="24dp"
+                android:text="City:"
+                android:textColor="@color/cyan_blue"
+                android:textSize="20dp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/genderDraw"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/cityDraw"
+                android:layout_marginLeft="115dp"
+                android:layout_marginTop="22dp"
+                android:text="Gender:"
+                android:textColor="@color/cyan_blue"
+                android:textSize="20dp"
+                android:textStyle="bold" />
 
             <EditText
                 android:id="@+id/cityEdit"
-                android:layout_width="wrap_content"
+                android:layout_width="73dp"
                 android:layout_height="wrap_content"
+                android:layout_below="@+id/ageEdit"
+                android:layout_marginLeft="200dp"
+                android:layout_marginTop="4dp"
                 android:ems="4"
                 android:hint="City"
                 android:inputType="text"
-                android:layout_marginTop="260dp"
-                android:layout_marginLeft="200dp"
                 android:text="City" />
 
             <EditText
                 android:id="@+id/genderEdit"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_below="@+id/cityEdit"
+                android:layout_marginLeft="200dp"
+                android:layout_marginTop="2dp"
                 android:ems="4"
                 android:hint="Gender"
                 android:inputType="text"
-                android:layout_marginTop="330dp"
-                android:layout_marginLeft="200dp"
                 android:text="Gender" />
 
             <de.hdodenhof.circleimageview.CircleImageView
+                android:id="@+id/profile_image"
                 android:layout_width="100dp"
                 android:layout_height="100dp"
-                android:id="@+id/profile_image"
                 android:layout_centerHorizontal="true"
-                android:layout_marginTop="50dp"
-                android:src="@mipmap/ic_launcher"/>
+                android:layout_marginTop="31dp"
+                android:src="@mipmap/ic_launcher" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -112,7 +118,7 @@
                 android:layout_height="40dp"
                 android:layout_below="@+id/genderDraw"
                 android:layout_centerHorizontal="true"
-                android:layout_marginTop="33dp"
+                android:layout_marginTop="15dp"
                 android:background="@color/cyan_blue"
                 android:text="Apply"
                 android:textColor="@color/white" />

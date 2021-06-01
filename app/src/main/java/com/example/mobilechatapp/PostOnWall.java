@@ -89,9 +89,9 @@ public class PostOnWall extends AppCompatActivity {
 
     private void setButton()
     {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmm", Locale.getDefault());
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault());
         String time = sdf.format(new Date());
-        DatabaseReference reference = FirebaseDatabase.getInstance().getReference("Feed").child(time);
+        DatabaseReference reference = FirebaseDatabase.getInstance().getReference("Feed").child(time+user.getUsername());
         Post.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v)
@@ -105,10 +105,11 @@ public class PostOnWall extends AppCompatActivity {
                     reference.child("Username").setValue(Username);
                     reference.child("ImageUrl").setValue(ImageUrl);
                     reference.child("PostMessage").setValue(PostMessage);
-                    Toast.makeText( context , "Your post was successful.", Toast.LENGTH_LONG);
+                    Toast.makeText( context , "Your post was successful.", Toast.LENGTH_LONG).show();
+                    finish();
                     finish();
                 }
-                else Toast.makeText( context , "Post not allowed , try again.", Toast.LENGTH_LONG);
+                else Toast.makeText( context , "Post not allowed , try again.", Toast.LENGTH_LONG).show();
 
             }
         });

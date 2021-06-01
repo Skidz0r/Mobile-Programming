@@ -1,6 +1,9 @@
 package com.example.mobilechatapp.Adapter;
 
+import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,6 +15,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.example.mobilechatapp.FeedActivity;
 import com.example.mobilechatapp.Information.FeedPosts;
 import com.example.mobilechatapp.Information.User;
 import com.example.mobilechatapp.R;
@@ -20,7 +24,9 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.util.List;
 
-public class FeedAdapter extends RecyclerView.Adapter<FeedAdapter.FeedViewHolder> {
+import static androidx.core.app.ActivityCompat.requestPermissions;
+
+public class FeedAdapter extends RecyclerView.Adapter<FeedAdapter.FeedViewHolder>  {
 
     private Context context;
     private List<FeedPosts> posts;
@@ -61,10 +67,11 @@ public class FeedAdapter extends RecyclerView.Adapter<FeedAdapter.FeedViewHolder
     @Override
     public void onBindViewHolder(@NonNull FeedViewHolder holder, int position)
     {
+
         FeedPosts user = posts.get(position);
         holder.username.setText(user.getUsername());
         holder.post.setText(user.getPostMessage());
-
+        Log.i("FeedAdapterDebug",user.getUsername()+user.getPostMessage()+user.getImageUrl());
         /* Time Settings */
         String time = user.getHours();
         String Year = time.substring(0,4);
