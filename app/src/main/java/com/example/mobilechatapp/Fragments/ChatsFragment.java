@@ -55,6 +55,10 @@ public class ChatsFragment extends Fragment {
         return view;
     }
 
+    /**
+     * Method is called by the parent activity to update ou user list.
+     * @param chatUserList list of bluettoth connections
+     */
     public void updateUserChatList(ArrayList<UserChat> chatUserList) {
         Log.i(TAG, "Update chat list");
         this.chatUserList = chatUserList;

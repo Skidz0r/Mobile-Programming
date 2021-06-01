@@ -238,7 +238,6 @@ public class ChatActivity extends AppCompatActivity implements BluetoothState {
                         messageList.add(messageInfo);
                         mMessageAdapter.notifyDataSetChanged();
                     }
-
                     break;
 
                 case GET_MESSAGE_HISTORY:
@@ -256,6 +255,12 @@ public class ChatActivity extends AppCompatActivity implements BluetoothState {
                     sendMessageToService(GET_MESSAGE_HISTORY, userChat);
                     break;
 
+                /**
+                 * Service informed us that a user was removed, i.e we lost connection to one
+                 * previously known user. This user might be the one we are currently talking, if
+                 * so we need to close activity. If time is available we could try to save the
+                 * message until a connection is reestablished
+                 */
                 case REMOVE_USER:
                     UserChat user = (UserChat) msg.obj;
 
@@ -271,6 +276,10 @@ public class ChatActivity extends AppCompatActivity implements BluetoothState {
         }
     }
 
+    /**
+     * Reset the content os the recycler view
+     * @param list List of exchanged messages
+     */
     private void resetRecyclerContent(LinkedList<MessageInfo> list) {
         if (list == null)
             return;

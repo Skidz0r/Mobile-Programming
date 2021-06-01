@@ -182,6 +182,10 @@ public class BluetoothService extends Service implements BluetoothState {
                     tryToConnect(device);
                     break;
 
+                /**
+                 * Someone asked to send a message to a user. We try to find the connected thread
+                 * and try to send the message.
+                 */
                 case MESSAGE_WRITE:
                     messageInfo = (MessageInfo) msg.obj;
                     userChat = messageInfo.getToUser();
@@ -360,8 +364,8 @@ public class BluetoothService extends Service implements BluetoothState {
     /**
      * Professor says that onDestroy method is not always called when the service is closed.
      * This a problem. We should do the contents of onDestroy in onStop. The catch is that
-     * we onStop method does not mean the service is destroyed, so we the service was resumed we
-     * needed to register the broadcast again and form the connection again.
+     * onStop method does not mean the service is destroyed, so when the service was resumed we
+     * need to register the broadcast again and form the connections again.
      * For now we will have to use onDestroy, but if time is available we should change this
      */
     @Override
@@ -436,7 +440,7 @@ public class BluetoothService extends Service implements BluetoothState {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 assert device != null;
 
-                if ( device.getName() != null && !knownDevices.contains(device)) {
+                if (device.getName() != null && !knownDevices.contains(device)) {
                     knownDevices.add(device);
                     Log.i(TAG, "Device found " + device.getName());
 
@@ -636,7 +640,7 @@ public class BluetoothService extends Service implements BluetoothState {
     /**
      * Method will add A {@link MessageInfo} to our local memory.
      * We are suposed to use a proper database, but given the time restrictions we decided to
-     * use a locak HashMap. In the future this need to change
+     * use a local HashMap. In the future this need to change
      *
      * @param messageInfo {@link MessageInfo} to save
      */
@@ -649,37 +653,28 @@ public class BluetoothService extends Service implements BluetoothState {
             userChat = messageInfo.getFromUser();
         }
 
-        Log.i(TAG, "Memory: " + mem.toString());
-
         LinkedList<MessageInfo> list = mem.get(userChat);
 
         if (list == null) {
-            Log.i(TAG, "List is null");
-
             list = new LinkedList<>();
             mem.put(userChat, list);
-        } else {
-            Log.i(TAG, "List is not null " + list);
         }
 
         while (list.size() >= MAX_LOCAL_MEM)
             list.removeFirst();
 
         list.addLast(messageInfo);
-
-        Log.i(TAG, "list2 :" + list == null ? "Empty" : list.toString());
     }
 
 
     /**
      * Thread will initiate input and output channels between the two devices in two
      * different thread, one for listening and the other for writing.
-     * Warning in the current implementation, device is used as unique identifier between different
-     * connection threads
      */
     public class ConnectionThread extends Thread {
         private final BluetoothSocket socket;
 
+        // UserChat is used as a unique identifier
         private final UserChat user;
 
         private final Listen listen;
@@ -704,6 +699,12 @@ public class BluetoothService extends Service implements BluetoothState {
             }
         }
 
+        /**
+         * Write message to socket. This thread does not perform the write, instead it will call
+         * a different thread, responsible for sending messages, since writing is a blocking method
+         *
+         * @param messageInfo Message to send
+         */
         void write(MessageInfo messageInfo) {
             if (send == null) {
                 Log.i(TAG2, "Send thread is dead");
@@ -715,6 +716,10 @@ public class BluetoothService extends Service implements BluetoothState {
             }
         }
 
+        /**
+         * Method will close the input and output channels, and remove this object from our
+         * local database of established connections
+         */
         void terminateConnection() {
             Log.i(TAG2, "Terminating connection channel");
 
@@ -747,10 +752,19 @@ public class BluetoothService extends Service implements BluetoothState {
             this.interrupt();
         }
 
+        /**
+         * Get the user that we are connected to
+         *
+         * @return the connected user
+         */
         public UserChat getUser() {
             return user;
         }
 
+        /**
+         * Class is responsible for listening to messages. Reading from a socket is a blocking
+         * method, so we need a separated thread for this.
+         */
         public class Listen extends Thread {
             private final InputStream myIn;
             private byte[] myBuffer;
@@ -770,6 +784,13 @@ public class BluetoothService extends Service implements BluetoothState {
                 myIn = tempIn;
             }
 
+            /**
+             * Our thread will keep listening for messages in the inputStream. Reading from
+             * streams is a little weird, we don't actually know if are reading multiple messages,
+             * we don't know where actually message ends, etc.. To combat this, we shall read
+             * one byte at the time, and establish "\n\n" as a message delimiter. Once we read
+             * a message delimiter we can inform our clients that we received a message.
+             */
             @RequiresApi(api = Build.VERSION_CODES.KITKAT)
             public void run() {
                 myBuffer = new byte[BUFFER_SIZE];
@@ -782,8 +803,8 @@ public class BluetoothService extends Service implements BluetoothState {
                     try {
                         size = myIn.read(myBuffer, curPos, 1);
 
-                        if ( lastByte != 0 && lastByte == '\n' && myBuffer[curPos] == '\n') {
-                            String str = decodeMessage(myBuffer, curPos-1);
+                        if (lastByte != 0 && lastByte == '\n' && myBuffer[curPos] == '\n') {
+                            String str = decodeMessage(myBuffer, curPos - 1);
 
                             Log.i(TAG, "New message from " + user);
                             Log.i(TAG, "Content " + str);
@@ -810,11 +831,21 @@ public class BluetoothService extends Service implements BluetoothState {
                 }
             }
 
+            /**
+             * Decode the byte array into a string
+             *
+             * @param buffer byte array
+             * @param size   number of bytes to read
+             * @return string that contains the information of buffer
+             */
             private String decodeMessage(byte[] buffer, int size) {
                 return new String(myBuffer, 0, size);
             }
         }
 
+        /**
+         * Class is responsible for sending messages to the OutputStream.
+         */
         private class Send extends Thread {
             private final OutputStream myOut;
 
@@ -832,6 +863,12 @@ public class BluetoothService extends Service implements BluetoothState {
                 myOut = tempOut;
             }
 
+            /**
+             * write to OutputStream. This method adds the messages delimiter, so the other side
+             * can know that message has ended.
+             *
+             * @param message message to send
+             */
             public void write(String message) {
                 try {
                     Log.i(TAG2, "Trying to send message");

@@ -2,6 +2,9 @@ package com.example.mobilechatapp.Information;
 
 import android.bluetooth.BluetoothDevice;
 
+/**
+ * Object is used to identify bluetooth connections
+ */
 public class UserChat {
     private final String id;
     private final BluetoothDevice device;
@@ -24,11 +27,7 @@ public class UserChat {
     }
 
     public boolean equals(UserChat user) {
-        if (user.getId().equals(id) && user.getDevice().equals(device))
-            return true;
-
-        else
-            return false;
+        return user.getId().equals(id) && user.getDevice().equals(device);
     }
 
     public boolean sameMac(BluetoothDevice device) {

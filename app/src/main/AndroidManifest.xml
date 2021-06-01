@@ -18,7 +18,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MobileChatApp">
         <activity android:name=".PostOnWall"></activity>
-        <activity android:name=".Feed" />
+        <activity android:name=".FeedActivity" />
         <activity android:name=".ProfileView.ProfileViewer" />
         <activity android:name=".LoginActivity" />
         <activity android:name=".LoggedInActivity" />

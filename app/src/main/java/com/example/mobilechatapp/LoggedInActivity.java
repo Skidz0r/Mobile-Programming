@@ -1,7 +1,6 @@
 package com.example.mobilechatapp;
 
 import android.Manifest;
-import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.content.ComponentName;
 import android.content.Context;
@@ -245,7 +244,7 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
 
         feed.setOnClickListener(v ->
         {
-            Intent feed = new Intent(LoggedInActivity.this,Feed.class);
+            Intent feed = new Intent(LoggedInActivity.this, FeedActivity.class);
             feed.putExtra("user",userToPass);
             startActivity(feed);
         });

@@ -3,9 +3,7 @@ package com.example.mobilechatapp;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.provider.ContactsContract;
 import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 
 import androidx.annotation.NonNull;
@@ -27,7 +25,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Feed extends AppCompatActivity {
+public class FeedActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
     private FeedAdapter feedAdapter;
@@ -51,14 +49,10 @@ public class Feed extends AppCompatActivity {
         user = (User) intent.getSerializableExtra("user");
 
 
-        postOnWall.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v)
-            {
-                Intent writeWall = new Intent(Feed.this, PostOnWall.class);
-                writeWall.putExtra("user",user);
-                startActivity(writeWall);
-            }
+        postOnWall.setOnClickListener(v -> {
+            Intent writeWall = new Intent(FeedActivity.this, PostOnWall.class);
+            writeWall.putExtra("user",user);
+            startActivity(writeWall);
         });
 
         readFeed();
