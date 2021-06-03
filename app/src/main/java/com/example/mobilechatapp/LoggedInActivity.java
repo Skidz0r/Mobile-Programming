@@ -221,7 +221,6 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
         reference = FirebaseDatabase.getInstance().getReference("Users").child(userDirectory);
 
 
-
         reference.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -245,7 +244,7 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
         feed.setOnClickListener(v ->
         {
             Intent feed = new Intent(LoggedInActivity.this, FeedActivity.class);
-            feed.putExtra("user",userToPass);
+            feed.putExtra("user", userToPass);
             startActivity(feed);
         });
 
@@ -283,8 +282,7 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
             if (!btAdapter.isDiscovering()) {
                 Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
                 startActivityForResult(enableBtIntent, REQUEST_ENABLE_DISCOVERY);
-            }
-            else {
+            } else {
                 sendMessageToService(BT_END_DISCOVERY);
             }
         });

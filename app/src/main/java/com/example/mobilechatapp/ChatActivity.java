@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.UUID;
 
 public class ChatActivity extends AppCompatActivity implements BluetoothState {
+    private static final int REQUEST_BT_ENABLE = 99;
     // Default android bluetooth adapter
     BluetoothAdapter btAdapter;
     // Connected device
@@ -248,6 +249,10 @@ public class ChatActivity extends AppCompatActivity implements BluetoothState {
                     sendMessageToService(GET_USER, userName);
                     break;
 
+                case BT_OFF:
+                    askBTTurnOn();
+                    break;
+
                 case GET_USER:
                     userChat = (UserChat) msg.obj;
                     Log.i(TAG, "User is " + userChat);
@@ -272,6 +277,26 @@ public class ChatActivity extends AppCompatActivity implements BluetoothState {
 
                 default:
                     break;
+            }
+        }
+    }
+    
+    private void askBTTurnOn() {
+        Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+        startActivityForResult(enableBtIntent, REQUEST_BT_ENABLE);
+        
+    }
+    
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == REQUEST_BT_ENABLE) {
+            if (resultCode == RESULT_CANCELED) {
+                Log.d(TAG, "Enable request failed");
+            } else {
+                Log.i(TAG, "Enable request accepted");
+                sendMessageToService(BT_ON);
             }
         }
     }

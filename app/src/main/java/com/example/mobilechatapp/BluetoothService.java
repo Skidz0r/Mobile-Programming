@@ -135,6 +135,10 @@ public class BluetoothService extends Service implements BluetoothState {
                     sendSimpleMessage(msg.replyTo, response, null);
                     break;
 
+                case BT_ON:
+                    btAdapter.enable();
+                    break;
+
                 // We assume that however made this request, has asked for user permission
                 case BT_START_DISCOVERY:
                     Log.i(TAG_REQUEST, "Start discovery mode");
@@ -424,10 +428,19 @@ public class BluetoothService extends Service implements BluetoothState {
                 switch (state) {
                     case BluetoothAdapter.STATE_ON:
                         sendAllSimpleMessage(BT_ON, null);
+
+                        if (serverThread != null && serverThread.isAlive()) {
+                            serverThread.interrupt();
+                        }
+
+                        serverThread = new ServerThread();
+                        serverThread.start();
                         break;
 
                     case BluetoothAdapter.STATE_OFF:
                         sendAllSimpleMessage(BT_OFF, null);
+                        userChatList.clear();
+                        sendAllSimpleMessage(GET_USER_LIST, userChatList);
                         break;
 
                     default:
@@ -511,7 +524,7 @@ public class BluetoothService extends Service implements BluetoothState {
         }
 
         public void run() {
-            while (myServerSocket != null) {
+            while (myServerSocket != null && btAdapter != null && btAdapter.isEnabled()) {
                 Log.i(TAG, "Waiting for a new connection request");
 
                 BluetoothSocket socket;
@@ -556,7 +569,8 @@ public class BluetoothService extends Service implements BluetoothState {
             Log.i(TAG1, "Creating client thread");
 
             try {
-                temp = device.createRfcommSocketToServiceRecord(MY_UUID);
+                if (device != null && btAdapter.isEnabled())
+                    temp = device.createRfcommSocketToServiceRecord(MY_UUID);
             } catch (IOException e) {
                 Log.e(TAG1, "Failed to create socket", e);
             }
