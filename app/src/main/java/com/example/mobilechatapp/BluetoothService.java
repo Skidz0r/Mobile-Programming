@@ -438,8 +438,15 @@ public class BluetoothService extends Service implements BluetoothState {
                         break;
 
                     case BluetoothAdapter.STATE_OFF:
-                        sendAllSimpleMessage(BT_OFF, null);
+                        for( UserChat elem: userChatList) {
+                            ConnectionThread temp = findConnectionThread(elem);
+
+                            if ( temp != null )
+                                temp.terminateConnection();
+                        }
+
                         userChatList.clear();
+                        sendAllSimpleMessage(BT_OFF, null);
                         sendAllSimpleMessage(GET_USER_LIST, userChatList);
                         break;
 

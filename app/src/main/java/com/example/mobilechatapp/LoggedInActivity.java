@@ -274,6 +274,13 @@ public class LoggedInActivity extends AppCompatActivity implements BluetoothStat
     private final short REQUEST_ENABLE_DISCOVERY = 1;
 
     public void initialSetUp() {
+        if ( !btAdapter.isDiscovering() ) {
+            discovery.setText("Start Discovery");
+        }
+
+        else
+            discovery.setText("Stop Discovery");
+
         discovery.setOnClickListener(v ->
         {
             ActivityCompat.requestPermissions(LoggedInActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERMISSION_REQUEST_CONSTANT);
